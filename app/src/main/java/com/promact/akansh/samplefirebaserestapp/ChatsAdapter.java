@@ -20,7 +20,9 @@ import java.util.Locale;
 
 public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHolder> {
     private Context context;
-    private ArrayList<String> textToSend;
+    private ArrayList<String> textToSend = new ArrayList<>();
+
+    public ChatsAdapter() { }
 
     public ChatsAdapter(Context context, ArrayList<String> textToSend) {
         this.context = context;
@@ -46,9 +48,15 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         String time = new SimpleDateFormat("HH:SS", Locale.getDefault())
                 .format(new Date());
 
-        String chatText = textToSend.get(position);
-        holder.chat.setText(chatText + "    ");
-        holder.chatTime.setText(time);
+        if (textToSend.size()==0) {
+            String chatText = textToSend.get(position);
+            holder.chat.setText(chatText + "    ");
+            holder.chatTime.setText(time);
+        } else {
+            String chatText = textToSend.get(textToSend.size()-1);
+            holder.chat.setText(chatText + "    ");
+            holder.chatTime.setText(time);
+        }
     }
 
     static class ChatViewHolder extends RecyclerView.ViewHolder {

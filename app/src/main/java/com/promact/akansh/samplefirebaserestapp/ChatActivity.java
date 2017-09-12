@@ -36,6 +36,8 @@ public class ChatActivity extends AppCompatActivity {
     public APIInterface apiInterface;
     public RecyclerView chatView;
     public ArrayList<String> chatsList;
+    public int number = 0;
+    private RecyclerView.LayoutManager mLayoutManager;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -49,7 +51,7 @@ public class ChatActivity extends AppCompatActivity {
         chatsList = new ArrayList<>();
         final String str = getIntent().getStringExtra("contactName");
         Log.d(TAG, "str: " + str);
-
+        mLayoutManager = new LinearLayoutManager(this);
        /* Call<Chats> call = apiInterface.fetchChatWithUserNames("Akansh", "Madhuri");
         call.enqueue(new Callback<Chats>() {
             @Override
@@ -86,24 +88,35 @@ public class ChatActivity extends AppCompatActivity {
         getSupportActionBar().setLogo(getDrawable(R.drawable.ic_user1));
         getSupportActionBar().setDisplayUseLogoEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        chatView.setLayoutManager(mLayoutManager);
+        for (int num=1; num<=20; num++) {
+            Call<Chats> call = apiInterface.fetchChatWithUserNames(str, num+"");
+            call.enqueue(new Callback<Chats>() {
+                @Override
+                public void onResponse(Call<Chats> call, Response<Chats> response) {
+                    if (response.body() != null) {
+                        Log.d(TAG, "response code: " + response.code());
+                        Chats chats = response.body();
 
-        Call<Chats> call = apiInterface.fetchChatWithUserNames();
-        call.enqueue(new Callback<Chats>() {
-            @Override
-            public void onResponse(Call<Chats> call, Response<Chats> response) {
-                Log.d(TAG, "response code: " + response.code());
-                Chats chats = response.body();
+                        ArrayList<String> chatStr = new ArrayList<>();
+                        chatStr.add(response.body().Msg);
 
-                String chattingWith = response.body().userTo;
+                        ChatsAdapter chatsAdapter = new ChatsAdapter(ChatActivity.this,
+                                chatStr);
+                        chatView.setAdapter(chatsAdapter);
 
-                Log.d(TAG, chats.Msg + "\n");
-            }
+                        // chatsAdapter.notifyDataSetChanged();
 
-            @Override
-            public void onFailure(Call<Chats> call, Throwable t) {
+                        Log.d(TAG, chats.Msg + "\n");
+                    }
+                }
 
-            }
-        });
+                @Override
+                public void onFailure(Call<Chats> call, Throwable t) {
+
+                }
+            });
+        }
 
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -121,7 +134,8 @@ public class ChatActivity extends AppCompatActivity {
                     chatView.setAdapter(chatsAdapter);
                     textToSend.setText("");
 
-                    Call<Chats> call = apiInterface.registerChat(chats);
+                    Call<Chats> call = apiInterface.registerChat("akansh", str, "1",  chats);
+
                     call.enqueue(new Callback<Chats>() {
                         @Override
                         public void onResponse(Call<Chats> call, Response<Chats> response) {
