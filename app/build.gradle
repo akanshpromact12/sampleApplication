@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "26.0.0"
+    defaultConfig {
+        applicationId "com.promact.akansh.samplefirebaserestapp"
+        minSdkVersion 23
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    java.util.Map<String, String> dependencies = rootProject.ext.dependencies
+
+    compile dependencies.appCompat
+    compile dependencies.squareupOtto
+    compile dependencies.designSupport
+    compile dependencies.recyclerView
+    compile dependencies.cardView
+
+    compile dependencies.playService
+    compile dependencies.playServiceAuth
+
+    compile dependencies.firebaseDb
+    compile dependencies.firebaseAuth
+    compile dependencies.firebaseStorage
+    compile dependencies.gson
+    compile dependencies.retrofit
+    compile dependencies.retrofitGson
+    compile dependencies.volley
+    compile dependencies.CircleImg
+    compile dependencies.loggingIntercept
+    compile dependencies.okhttp
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+}
+repositories {
+    mavenCentral()
+}
