@@ -9,9 +9,12 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.promact.akansh.samplefirebaserestapp.pojo.Chats;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -21,8 +24,7 @@ import java.util.Locale;
 public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHolder> {
     private Context context;
     private ArrayList<String> textToSend = new ArrayList<>();
-
-    public ChatsAdapter() { }
+    private String str = "";
 
     public ChatsAdapter(Context context, ArrayList<String> textToSend) {
         this.context = context;
@@ -32,6 +34,14 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
     @Override
     public int getItemCount() {
         return textToSend.size();
+    }
+
+    public String getFirstItemName() {
+        if (!textToSend.isEmpty()) {
+            str = textToSend.get(0);
+        }
+
+        return str;
     }
 
     @Override
@@ -45,16 +55,16 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
     @Override
     public void onBindViewHolder(ChatsAdapter.ChatViewHolder holder, int position) {
         Log.d("Inside ChatsAdapter", "/ChatsAdapter");
-        String time = new SimpleDateFormat("HH:SS", Locale.getDefault())
+        String time = new SimpleDateFormat("HH:MM", Locale.getDefault())
                 .format(new Date());
 
         if (textToSend.size()==0) {
             String chatText = textToSend.get(position);
-            holder.chat.setText(chatText + "    ");
+            holder.chat.setText(chatText.trim());
             holder.chatTime.setText(time);
         } else {
-            String chatText = textToSend.get(textToSend.size()-1);
-            holder.chat.setText(chatText + "    ");
+            String chatText = textToSend.get(holder.getAdapterPosition());
+            holder.chat.setText(chatText.trim());
             holder.chatTime.setText(time);
         }
     }

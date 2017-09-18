@@ -2,6 +2,11 @@ package com.promact.akansh.samplefirebaserestapp;
 
 import com.promact.akansh.samplefirebaserestapp.pojo.Chats;
 
+import org.json.JSONObject;
+
+import java.util.List;
+
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.Field;
@@ -15,7 +20,9 @@ public interface APIInterface {
     Call<Chats> registerChat(@Path("name1") String n1, @Path("name2") String n2,
                              @Path("number") String number, @Body Chats chatBean);
 
-    @GET("chats/akansh-{name2}/{number}.json")
-    Call<Chats> fetchChatWithUserNames(@Path("name2") String n2,
-                                       @Path("number") String number);
+    @GET("chats/Akansh-{name2}.json")
+    Call<ResponseBody> fetchChatWithUserNames(@Path("name2") String n2);
+
+    @GET("chats/{name1}-{name2}.json")
+    Call<ResponseBody> ReceiveChats(@Path("name1") String n1, @Path("name2") String n2);
 }

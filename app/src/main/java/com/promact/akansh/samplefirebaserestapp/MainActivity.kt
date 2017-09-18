@@ -1,84 +1,54 @@
 package com.promact.akansh.samplefirebaserestapp
 
 import android.content.ContentResolver
+import android.content.Intent
 import android.database.Cursor
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.ContactsContract
+import android.support.design.widget.TextInputEditText
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.widget.Button
+import android.widget.EditText
 import com.promact.akansh.samplefirebaserestapp.pojo.ContactsBean
 
 class MainActivity : AppCompatActivity() {
-    lateinit var contactsRecyclerView: RecyclerView
+    val TAG: String = "MainActivity";
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val toolbar: Toolbar = findViewById(R.id.toolbar) as Toolbar
-        setSupportActionBar(toolbar)
-        supportActionBar?.title = getString(R.string.app_name)
+        val name: TextInputEditText = findViewById(R.id.txtBoxUname) as TextInputEditText
+        val signIn: Button = findViewById(R.id.btnSignIn) as Button
 
-        contactsRecyclerView = findViewById(R.id.contacts_recycler_view) as RecyclerView
-        getAllContacts()
-        loadData()
-    }
+        //signIn.isEnabled = name.text.toString() != ""
 
-    fun loadData() {
-
-    }
-
-    fun getAllContacts() {
-        val contactsList: MutableList<ContactsBean> = ArrayList()
-        var contacts: ContactsBean
-
-        val contentResolver: ContentResolver = contentResolver
-        val cursor: Cursor = contentResolver.query(ContactsContract
-                .Contacts.CONTENT_URI, null, null, null,
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
-                + " ASC")
-
-        if (cursor.count > 0) {
-            while (cursor.moveToNext()) {
-                val hasPhoneNumber: Int = cursor.getString(cursor
-                        .getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER))
-                        .toInt()
-
-                if (hasPhoneNumber > 0) {
-                    val id: String = cursor.getString(cursor
-                            .getColumnIndex(ContactsContract.Contacts._ID))
-                    val name: String = cursor.getString(cursor
-                            .getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME))
-
-                    contacts = ContactsBean()
-                    contacts.contactName = name
-
-                    val phoneCursor: Cursor = contentResolver.query(ContactsContract
-                            .CommonDataKinds.Phone.CONTENT_URI, null,
-                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID+" = ?",
-                            arrayOf(id), null)
-
-                    phoneCursor.close()
-
-                    val emailCursor: Cursor = contentResolver.query(ContactsContract
-                            .CommonDataKinds.Phone.CONTENT_URI, null,
-                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID+" = ?",
-                            arrayOf(id), null)
-                    while (emailCursor.moveToNext()) {
-                        val emailId: String = emailCursor.getString(emailCursor
-                                .getColumnIndex(ContactsContract.CommonDataKinds
-                                        .Email.DATA))
-                    }
-                    contactsList.add(contacts)
-                }
+        name.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                //Do something
             }
 
-            val contactsAdapter: ContactsAdapter = ContactsAdapter(contactsList,
-                    applicationContext)
-            contactsRecyclerView.layoutManager = LinearLayoutManager(this)
-            contactsRecyclerView.adapter = contactsAdapter
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                //Do something
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                signIn.isEnabled = true
+            }
+        })
+
+        signIn.setOnClickListener {
+            Log.d(TAG, "name (as logged in): ${name.text}")
+
+            val intent: Intent = Intent(applicationContext, ChatMainActivity::class.java)
+            intent.putExtra("name", name.text.toString())
+            startActivity(intent)
         }
     }
 }

@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Chat App</string>
+    <string name="sender_name">Welcome: </string>
     <string name="chat_instance_text">hello</string>
+    <string name="username">Username</string>
+    <string name="password">password</string>
+    <string name="homePageString">Welcome</string>
+    <string name="sign_in">SIGN IN</string>
+    <string name="helloString">hello</string>
+    <string name="one">1</string>
 </resources>

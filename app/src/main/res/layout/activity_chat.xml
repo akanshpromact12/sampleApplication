@@ -5,7 +5,7 @@
     android:id="@+id/activity_chat"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.promact.akansh.samplefirebaserestapp.MainActivity"
+    tools:context="com.promact.akansh.samplefirebaserestapp.ChatMainActivity"
     android:backgroundTint="@color/colorAccent">
 
     <android.support.design.widget.AppBarLayout
@@ -28,43 +28,38 @@
     <android.support.v7.widget.RecyclerView
         android:id="@+id/chatsRecycler"
         android:layout_width="match_parent"
-        android:layout_height="440dp"
+        android:layout_height="match_parent"
         android:layout_marginTop="?attr/actionBarSize"
+        android:layout_above="@+id/linearLayout"
         android:scrollbars="vertical" />
 
-    <RelativeLayout
+    <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@+id/appbar_chat">
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/transparent">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:background="@android:color/transparent">
+        <EditText
+            android:id="@+id/textToSend"
+            android:layout_width="0dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="1"
+            android:background="@android:color/white"
+            android:hint="Type a message"
+            android:layout_gravity="center_vertical"
+            android:layout_height="match_parent" />
 
-            <EditText
-                android:id="@+id/textToSend"
-                android:layout_width="0dp"
-                android:layout_marginStart="10dp"
-                android:layout_marginBottom="10dp"
-                android:layout_weight="1"
-                android:background="@android:color/white"
-                android:hint="Type a message"
-                android:layout_gravity="center_vertical"
-                android:layout_height="wrap_content" />
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/sendButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:src="@drawable/ic_send"
+            android:layout_margin="10dp"
+            app:backgroundTint="#008c7a"
+            app:borderWidth="0dp" />
 
-            <android.support.design.widget.FloatingActionButton
-                android:id="@+id/sendButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:src="@drawable/ic_send"
-                android:layout_margin="10dp"
-                app:backgroundTint="#008c7a"
-                app:borderWidth="0dp" />
-
-        </LinearLayout>
-
-    </RelativeLayout>
+    </LinearLayout>
 
 </RelativeLayout>

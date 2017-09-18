@@ -20,6 +20,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/chat_instance_text"
                 android:textSize="20sp"
+                android:layout_marginEnd="20dp"
                 android:textColor="@android:color/black" />
 
             <TextView
