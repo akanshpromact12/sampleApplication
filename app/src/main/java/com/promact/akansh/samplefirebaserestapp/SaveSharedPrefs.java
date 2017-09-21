@@ -30,4 +30,8 @@ public class SaveSharedPrefs {
     static String getName(Context context) {
         return getSharedPrefs(context).getString(PREF_NAME, "");
     }
+
+    static void clearAllPrefs(Context context) {
+        getSharedPrefs(context).edit().clear().apply();
+    }
 }

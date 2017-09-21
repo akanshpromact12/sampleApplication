@@ -1,5 +1,6 @@
 package com.promact.akansh.samplefirebaserestapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -9,6 +10,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
+import io.realm.Realm;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -70,7 +73,7 @@ public class ChatActivity extends AppCompatActivity {
         final String str = getIntent().getStringExtra("contactName");
         Log.d(TAG, "str: " + str);
         mLayoutManager = new LinearLayoutManager(this);
-        if (SaveSharedPrefs.getName(ChatActivity.this).length()==0) {
+        if (SaveSharedPrefs.getName(ChatActivity.this).isEmpty()) {
             name = getIntent().getStringExtra("name");
         } else {
             name = SaveSharedPrefs.getName(ChatActivity.this);
@@ -85,6 +88,7 @@ public class ChatActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         chatView.setLayoutManager(mLayoutManager);
         chatStr = new ArrayList<>();
+        middleware.checkNames();
         fetchAllPrevMsg(str);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -99,9 +103,14 @@ public class ChatActivity extends AppCompatActivity {
                             name + ": " + textToSend.getText().toString(), date);
                     chatsRealm.setUserFrom(name);
                     chatsRealm.setUserTo(str);
-                    chatsRealm.setMsg(textToSend.getText().toString());
+                    chatsRealm.setMsg(name + ": " + textToSend.getText().toString());
                     chatsRealm.setTime(date);
-                    chatsRealm.setNetAvailable(true);
+                    if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+                        chatsRealm.setNetAvailable(true);
+                    } else {
+                        chatsRealm.setNetAvailable(false);
+                    }
+
                     middleware.addChats(chatsRealm);
 
                     chatStr.add(textToSend.getText().toString());
@@ -117,46 +126,53 @@ public class ChatActivity extends AppCompatActivity {
 
                     textToSend.setText("");
 
-                    Call<Chats> call = null;
-                    if (!chatsAdapter.getFirstItemName().equals("")) {
-                        if (chatsAdapter.getFirstItemName().split(":")[0].equals(str)) {
-                            call = apiInterface.registerChat(str, name, num+"",
-                                    chats);
-                        } else {
-                            call = apiInterface.registerChat(name, str, num+"",
-                                    chats);
+                    if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+                        Call<Chats> call = null;
+                        if (!chatsAdapter.getFirstItemName().equals("")) {
+                            if (chatsAdapter.getFirstItemName().split(":")[0].equals(str)) {
+                                call = apiInterface.registerChat(str, name, num+"",
+                                        chats);
+                            } else {
+                                call = apiInterface.registerChat(name, str, num+"",
+                                        chats);
+                            }
                         }
-                    }
 
-                    if (call != null) {
-                        call.enqueue(new Callback<Chats>() {
-                            @Override
-                            public void onResponse(Call<Chats> call, Response<Chats> response) {
-                                Log.d(TAG, "response code: " + response.code());
-                                String displayRespUser = "";
+                        if (call != null) {
+                            call.enqueue(new Callback<Chats>() {
+                                @Override
+                                public void onResponse(Call<Chats> call, Response<Chats> response) {
+                                    Log.d(TAG, "response code: " + response.code());
+                                    String displayRespUser = "";
 
-                                Chats chats = response.body();
+                                    Chats chats = response.body();
 
-                                String userFrom = chats.userFrom;
-                                String userTo = chats.userTo;
-                                String Msg = name + ": " + chats.Msg;
-                                String Time = chats.Time;
+                                    String userFrom = chats.userFrom;
+                                    String userTo = chats.userTo;
+                                    String Msg = name + ": " + chats.Msg;
+                                    String Time = chats.Time;
 
-                                displayRespUser = "UserFromName: " + userFrom +
-                                        " UserTo: " + userTo + " Msg: " + Msg +
-                                        " Time: " + Time;
+                                    displayRespUser = "UserFromName: " + userFrom +
+                                            " UserTo: " + userTo + " Msg: " + Msg +
+                                            " Time: " + Time;
 
-                                Log.d(TAG, "UserFromName: " + userFrom + " UserTo: " +
-                                        userTo + " Msg: " + Msg + " Time: " + Time);
+                                    Log.d(TAG, "UserFromName: " + userFrom + " UserTo: " +
+                                            userTo + " Msg: " + Msg + " Time: " + Time);
 
-                                Log.d(TAG, "Data successfully uploaded");
-                            }
+                                    Log.d(TAG, "Data successfully uploaded");
+                                }
 
-                            @Override
-                            public void onFailure(Call<Chats> call, Throwable t) {
-                                call.cancel();
-                            }
-                        });
+                                @Override
+                                public void onFailure(Call<Chats> call, Throwable t) {
+                                    call.cancel();
+                                }
+                            });
+                        }
+                    } else {
+                        Toast.makeText(ChatActivity.this,
+                                "Internet not available. Messages will be delivered" +
+                                        "when internet is turned on.",
+                                Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -164,89 +180,119 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void fetchAllPrevMsg(final String str) {
-        //str-name combination
-        Call<ResponseBody> call = apiInterface.ReceiveChats(str, name);
-        call.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                Log.d(TAG, "receive response code: " + response.code());
+        if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+            //str-name combination
+            Call<ResponseBody> call = apiInterface.ReceiveChats(str, name);
+            call.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                    Log.d(TAG, "receive response code: " + response.code());
 
-                try {
-                    if (response.body().contentLength() > 4) {
-                        JSONObject jsonObject = new JSONObject(response.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
-                        JSONArray jsonArray = jsonObject.names();
+                    try {
+                        if (response.body().contentLength() > 4) {
+                            JSONObject jsonObject = new JSONObject(response.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
+                            JSONArray jsonArray = jsonObject.names();
 
-                        for (int i=0; i<jsonArray.length(); i++) {
-                            JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
-                            String msg = jsonObject1.getString("Msg");
-                            String userTo = jsonObject1.getString("userTo");
+                            for (int i=0; i<jsonArray.length(); i++) {
+                                JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
+                                String msg = jsonObject1.getString("Msg");
+                                String userTo = jsonObject1.getString("userTo");
 
-                            if (msg.split(":")[0].equals(name)) {
-                                chatStr.add("You: " + msg.split(":")[1]);
-                            } else {
-                                chatStr.add(msg);
+                                if (msg.split(":")[0].equals(name)) {
+                                    chatStr.add("You: " + msg.split(":")[1]);
+                                } else {
+                                    chatStr.add(msg);
+                                }
                             }
+
+                            chatsAdapter = new ChatsAdapter(ChatActivity.this,
+                                    chatStr);
+
+                            chatView.setAdapter(chatsAdapter);
                         }
 
-                        chatsAdapter = new ChatsAdapter(ChatActivity.this,
-                                chatStr);
-                        //chatsAdapter.notifyDataSetChanged();
-                        chatView.setAdapter(chatsAdapter);
+
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Log.e(TAG, "Error occured", t);
+                }
+            });
+
+            //name-str combination
+            Call<ResponseBody> call1 = apiInterface.ReceiveChats(name, str);
+            call1.enqueue(new Callback<ResponseBody>() {
+                @Override
+                public void onResponse(Call<ResponseBody> call1, Response<ResponseBody> response1) {
+                    Log.d(TAG, "receive response code: " + response1.code());
+
+                    try {
+                        if (response1.body().contentLength() > 4) {
+                            JSONObject jsonObject = new JSONObject(response1.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
+                            JSONArray jsonArray = jsonObject.names();
+
+                            for (int i=0; i<jsonArray.length(); i++) {
+                                JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
+                                String msg = jsonObject1.getString("Msg");
+                                String userTo = jsonObject1.getString("userTo");
+
+                                if (msg.split(":")[0].equals(name)) {
+                                    chatStr.add("You: " + msg.split(":")[1]);
+                                } else {
+                                    chatStr.add(msg);
+                                }
+                            }
+
+                            chatsAdapter = new ChatsAdapter(ChatActivity.this,
+                                    chatStr);
+                            //chatsAdapter.notifyDataSetChanged();
+                            chatView.setAdapter(chatsAdapter);
+                        }
 
 
-                } catch (Exception ex) {
-                    ex.printStackTrace();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<ResponseBody> call, Throwable t) {
+                    Log.e(TAG, "Error occured", t);
+                }
+            });
+        } else {
+            Toast.makeText(ChatActivity.this, "Internet connection unavailable. " +
+                    "Please turn on internet services to resume download of previous " +
+                    "chats.", Toast.LENGTH_SHORT).show();
+
+            String str1 = middleware.receiveMessages(name);
+            if (str1.equals("EMPTY")) {
+                Toast.makeText(ChatActivity.this, "This is the first time of chating " +
+                        "with " + str + ".", Toast.LENGTH_SHORT).show();
+            } else {
+                for (String s : str1.split("-")) {
+                    if (s.split(":")[0].trim().equals(name)) {
+                        chatStr.add("You: " + s.split(":")[1]);
+                    } else if (s.split(":")[0].trim().equals(str)) {
+                        chatStr.add(s);
+                    }
                 }
             }
 
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e(TAG, "Error occured", t);
-            }
-        });
+            chatsAdapter = new ChatsAdapter(ChatActivity.this, chatStr);
+            chatView.setAdapter(chatsAdapter);
+        }
+    }
 
-        //name-str combination
-        Call<ResponseBody> call1 = apiInterface.ReceiveChats(name, str);
-        call1.enqueue(new Callback<ResponseBody>() {
-            @Override
-            public void onResponse(Call<ResponseBody> call1, Response<ResponseBody> response1) {
-                Log.d(TAG, "receive response code: " + response1.code());
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.chats_menu, menu);
 
-                try {
-                    if (response1.body().contentLength() > 4) {
-                        JSONObject jsonObject = new JSONObject(response1.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
-                        JSONArray jsonArray = jsonObject.names();
-
-                        for (int i=0; i<jsonArray.length(); i++) {
-                            JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
-                            String msg = jsonObject1.getString("Msg");
-                            String userTo = jsonObject1.getString("userTo");
-
-                            if (msg.split(":")[0].equals(name)) {
-                                chatStr.add("You: " + msg.split(":")[1]);
-                            } else {
-                                chatStr.add(msg);
-                            }
-                        }
-
-                        chatsAdapter = new ChatsAdapter(ChatActivity.this,
-                                chatStr);
-                        //chatsAdapter.notifyDataSetChanged();
-                        chatView.setAdapter(chatsAdapter);
-                    }
-
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<ResponseBody> call, Throwable t) {
-                Log.e(TAG, "Error occured", t);
-            }
-        });
+        return true;
     }
 
     @Override
@@ -254,6 +300,17 @@ public class ChatActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case android.R.id.home:
                 NavUtils.navigateUpFromSameTask(this);
+
+                return true;
+            case R.id.logoutChats:
+                Toast.makeText(ChatActivity.this, "You just logged out!!",
+                        Toast.LENGTH_SHORT).show();
+
+                SaveSharedPrefs.clearAllPrefs(getApplicationContext());
+                Intent intent = new Intent(ChatActivity.this,
+                        MainActivity.class);
+                startActivity(intent);
+
                 return true;
         }
 
