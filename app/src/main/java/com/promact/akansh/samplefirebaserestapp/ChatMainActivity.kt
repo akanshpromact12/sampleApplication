@@ -15,6 +15,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import com.promact.akansh.samplefirebaserestapp.pojo.ContactRealm
 import com.promact.akansh.samplefirebaserestapp.pojo.ContactsBean
+import com.promact.akansh.samplefirebaserestapp.pojo.UsersRealm
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -32,6 +33,7 @@ class ChatMainActivity : AppCompatActivity() {
     var str: String = ""
     lateinit var contactsList: MutableList<String>
     lateinit var contactRealm: ContactRealm
+    lateinit var usersRealm: UsersRealm
     lateinit var middleware: Middleware
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,7 +111,7 @@ class ChatMainActivity : AppCompatActivity() {
                             val jsonObj: JSONObject = JSONObject(response.body()
                                     .string())
                             val contactRealmSizeCheck = middleware
-                                    .checkContactsRealmSize()
+                                    .searchContactSize()
 
                             for (i in 0..(jsonObj.length()-1)) {
                                 val user: String = jsonObj.names().get(i) as String
@@ -185,10 +187,8 @@ class ChatMainActivity : AppCompatActivity() {
                 }
             })*/
         } else {
-            val contactRealmSizeCheck = middleware
-                    .checkContactsRealmSize()
-            if (contactRealmSizeCheck != 0) {
-                val contactNames: String = middleware.searchAllUsers()
+            if (middleware.searchContactSize() != 0) {
+                val contactNames: String = middleware.searchAllContacts()
                 for (users in contactNames.split(":")) {
                     Log.d(TAG, "users: ${users.trim()}\nName: $name");
                     if (users.trim() != name) {

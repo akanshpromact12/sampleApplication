@@ -62,6 +62,13 @@ class MainActivity : AppCompatActivity() {
 
             if (NetworkStatus.isNetworkAvailable(applicationContext)) {
                 //val num = random.nextInt(1081) + 2000
+                if (middleware.checkUserSize() >= 0 && middleware
+                        .checkIfUserExists(name.text.toString()) == false) {
+                    val userRealm: UsersRealm = UsersRealm()
+
+                    userRealm.userName = name.text.toString()
+                    middleware.addUsers(userRealm)
+                }
 
                 val call: Call<Users> = apiInterface
                         .registerUsers(name.text.toString(), "")

@@ -33,6 +33,7 @@ public class Middleware {
     private Boolean userExists = false;
     private APIInterface apiInterface;
     private String str = "";
+    private String s="";
 
     void addChats(ChatsRealm chats) {
 
@@ -50,6 +51,7 @@ public class Middleware {
             public void execute(Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
                                 .findAll();
+                Log.d(TAG, "chats size: " + realmResults.size());
 
                 for (ChatsRealm obj : realmResults) {
                     Log.d(TAG, "execute: "+obj.getMsg());
@@ -77,6 +79,34 @@ public class Middleware {
                 }
             }
         });
+    }
+
+    int checkUserSize() {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<UsersRealm> usersRealm = realm.where(UsersRealm.class)
+                        .findAll();
+
+                size = usersRealm.size();
+            }
+        });
+
+        return size;
+    }
+
+    int searchContactSize() {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<ContactRealm> realmResults = realm.where(ContactRealm.class)
+                        .findAll();
+                Log.d(TAG, "Total contacts: " + realmResults);
+                size = realmResults.size();
+            }
+        });
+
+        return size;
     }
 
     void addContacts(ContactRealm contacts) {
@@ -116,6 +146,7 @@ public class Middleware {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
                         .findAll();
 
+                Log.d(TAG, "Realm chats size: " + realmResults.size());
                 size = realmResults.size();
             }
         });
@@ -130,6 +161,7 @@ public class Middleware {
                 RealmResults<UsersRealm> realmResults = realm
                         .where(UsersRealm.class).findAll();
 
+                Log.d(TAG, "realm size for contacts: " + realmResults.size());
                 size = realmResults.size();
             }
         });
@@ -269,7 +301,7 @@ public class Middleware {
                             if (str.equals("")) {
                                 str = obj.names().get(i).toString();
                             } else {
-                                str += " - " + obj.names().get(i).toString();
+                                str += ":" + obj.names().get(i).toString();
                             }
                         }
                         Log.d(TAG, "contact names: " + str);
@@ -295,13 +327,90 @@ public class Middleware {
             @Override
             public void execute(Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
-                        .equalTo("netAvailable", false).findAll();
+                        .equalTo("netAvailable", true).findAll();
 
-                for (ChatsRealm chatsRealm : realmResults) {
-                    for (String cr : checkNames().split("-")) {
-                        if (cr.trim().equals(chatsRealm.getUserFrom()+"-"))
-                    }
+                Log.d(TAG, "chats to upload -> size: " + realmResults.size());
+                Log.d(TAG, "-----------Begin-----------");
+
+                for (final ChatsRealm chatsRealm : realmResults) {
+                    Log.d(TAG, "messages that haven't been delivered yet: " +
+                            chatsRealm.getMsg() + " user from : " + chatsRealm
+                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo());
+                    s = "messages that haven't been delivered yet: " +
+                            chatsRealm.getMsg() + " user from : " + chatsRealm
+                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo();
+                    /*Call<ResponseBody> call = apiInterface.fetchAllContactNames();
+                    call.enqueue(new retrofit2.Callback<ResponseBody>() {
+                        @Override
+                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                            Log.d(TAG, "contacts response code");
+
+                            try {
+                                if (response.body().contentLength() > 4) {
+                                    JSONObject obj = new JSONObject(response.body().string());
+
+                                    for (int i=0; i<obj.length(); i++) {
+                                        if (str.equals("")) {
+                                            str = obj.names().get(i).toString();
+                                        } else {
+                                            str += ":" + obj.names().get(i).toString();
+                                        }
+
+                                        Log.d(TAG, "obj names: " + str);
+                                        for (String st : str.split(":")) {
+                                            if (st.equals(chatsRealm.getUserFrom()+
+                                                    "-"+chatsRealm.getUserTo())
+                                                    || s.equals(chatsRealm.getUserTo()+
+                                                    "-"+chatsRealm.getUserFrom())) {
+                                                if (s.equals("")) {
+                                                    s += "user chat exists: " + st;
+                                                } else {
+                                                    s += " * " + "user chat exists: " + st;
+                                                }
+                                            } else {
+                                                if (s.equals("")) {
+                                                    s += "user chat doesn't exists: " + st;
+                                                } else {
+                                                    s += " * " + "user chat doesn't exists: " + st;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Log.d(TAG, "value of s: " + s);
+                                    Log.d(TAG, "contact names: " + str);
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<ResponseBody> call, Throwable t) {
+
+                        }
+                    });*/
+                    /*for (String cr : str3.split(":")) {
+                        Log.d(TAG, "cr: " + cr);
+                        Log.d(TAG, chatsRealm.getUserFrom()+"-"+chatsRealm.getUserTo());
+                        if (cr.equals(chatsRealm.getUserFrom()+"-"+chatsRealm
+                                .getUserTo()) || cr.equals(chatsRealm
+                                .getUserTo()+"-"+chatsRealm.getUserFrom())) {
+                            if (s.equals("")) {
+                                s = "user chat exists: " + cr;
+                            } else {
+                                s += " * " + "user chat exists: " + cr;
+                            }
+                        } else {
+                            if (s.equals("")) {
+                                s = "user chat doesn't exists: " + cr;
+                            } else {
+                                s += " * " + "user chat doesn't exists: " + cr;
+                            }
+                        }
+                    }*/
                 }
+
+                Log.d(TAG, "------------End------------");
             }
         });
     }

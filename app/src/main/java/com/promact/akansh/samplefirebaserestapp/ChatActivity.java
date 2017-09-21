@@ -88,7 +88,8 @@ public class ChatActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         chatView.setLayoutManager(mLayoutManager);
         chatStr = new ArrayList<>();
-        middleware.checkNames();
+        /*String str3 = middleware.checkNames();
+        Log.d(TAG, "check names: " + str3);*/
         fetchAllPrevMsg(str);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
@@ -110,9 +111,9 @@ public class ChatActivity extends AppCompatActivity {
                     } else {
                         chatsRealm.setNetAvailable(false);
                     }
-
+                    Log.d(TAG, "above");
                     middleware.addChats(chatsRealm);
-
+                    Log.d(TAG, "below");
                     chatStr.add(textToSend.getText().toString());
 
                     if (chatView.getAdapter() == null) {
@@ -195,8 +196,20 @@ public class ChatActivity extends AppCompatActivity {
 
                             for (int i=0; i<jsonArray.length(); i++) {
                                 JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
+                                int chatSize = jsonArray.length();
+                                Log.d(TAG, "chatSize: " + chatSize);
+                                Log.d(TAG, "jsonObj: " + jsonObject1);
+                                int chatRealmSize = middleware.checkChatRealmSize();
+
                                 String msg = jsonObject1.getString("Msg");
-                                String userTo = jsonObject1.getString("userTo");
+                                chatsRealm.setUserFrom(jsonObject1.getString("userFrom"));
+                                chatsRealm.setUserTo(jsonObject1.getString("userTo"));
+                                chatsRealm.setMsg(jsonObject1.getString("Msg"));
+                                chatsRealm.setTime(jsonObject1.getString("Time"));
+                                chatsRealm.setNetAvailable(true);
+                                if (chatSize >= chatRealmSize) {
+                                    middleware.addChats(chatsRealm);
+                                }
 
                                 if (msg.split(":")[0].equals(name)) {
                                     chatStr.add("You: " + msg.split(":")[1]);
@@ -286,6 +299,7 @@ public class ChatActivity extends AppCompatActivity {
             chatsAdapter = new ChatsAdapter(ChatActivity.this, chatStr);
             chatView.setAdapter(chatsAdapter);
         }
+        middleware.uploadChats();
     }
 
     @Override
