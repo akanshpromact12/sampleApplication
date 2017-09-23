@@ -17,6 +17,8 @@ public class ChatsRealm extends RealmObject {
     private String Msg;
     private String Time;
     private Boolean netAvailable;
+    private String uploadCombo;
+    private int chatsInNumber;
 
     public String getChatId() {
         return chatId;
@@ -59,4 +61,12 @@ public class ChatsRealm extends RealmObject {
     public Boolean getNetAvailable() { return netAvailable; }
 
     public void setNetAvailable(Boolean netAvailable) { this.netAvailable = netAvailable; }
+
+    public String getUploadCombo() { return uploadCombo; }
+
+    public void setUploadCombo(String uploadCombo) { this.uploadCombo = uploadCombo; }
+
+    public int getChatsInNumber() { return chatsInNumber; }
+
+    public void setChatsInNumber(int chatsInNumber) { this.chatsInNumber = chatsInNumber; }
 }

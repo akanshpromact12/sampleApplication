@@ -10,6 +10,7 @@ import com.promact.akansh.samplefirebaserestapp.pojo.UsersRealm;
 
 import org.json.JSONObject;
 
+import java.util.Random;
 import java.util.UUID;
 
 import io.realm.Realm;
@@ -34,6 +35,8 @@ public class Middleware {
     private APIInterface apiInterface;
     private String str = "";
     private String s="";
+    private Boolean chatExists = false;
+    private Random random = new Random();
 
     void addChats(ChatsRealm chats) {
 
@@ -44,21 +47,59 @@ public class Middleware {
         cr.setMsg(chats.getMsg());
         cr.setTime(chats.getTime());
         cr.setNetAvailable(chats.getNetAvailable());
+        cr.setUploadCombo(chats.getUploadCombo());
 
         realm.commitTransaction();
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
-                                .findAll();
+                                .equalTo("netAvailable", true).findAll();
                 Log.d(TAG, "chats size: " + realmResults.size());
 
                 for (ChatsRealm obj : realmResults) {
                     Log.d(TAG, "execute: "+obj.getMsg());
                 }
 
+                //uploadChats();
+                Log.d(TAG, "chats to upload -> size: " + realmResults.size());
+                Log.d(TAG, "-----------Begin-----------");
+
+                for (final ChatsRealm chatsRealm : realmResults) {
+                    Log.d(TAG, "messages that haven't been delivered yet: " +
+                            chatsRealm.getMsg() + " user from : " + chatsRealm
+                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo()
+                            + "user String: " + chatsRealm.getUploadCombo());
+                    s = "messages that haven't been delivered yet: " +
+                            chatsRealm.getMsg() + " user from : " + chatsRealm
+                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo()
+                            + "user String: " + chatsRealm.getUploadCombo();
+                }
+
+                Log.d(TAG, "------------End------------");
             }
         });
+    }
+
+    Boolean checkIfChatExists(final String userFrom, final String userTo, final String msg, final String Time) {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
+                        .findAll();
+
+                for (ChatsRealm chatsRealm : realmResults) {
+                    if (chatsRealm.getUserFrom().equals(userFrom) &&
+                            chatsRealm.getUserTo().equals(userTo) &&
+                            chatsRealm.getMsg().equals(msg) &&
+                            chatsRealm.getTime().equals(Time)) {
+                        chatExists = true;
+                    }
+                }
+            }
+        });
+
+        return chatExists;
     }
 
     void addUsers(UsersRealm usersRealm) {
@@ -144,24 +185,9 @@ public class Middleware {
             @Override
             public void execute(Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
-                        .findAll();
+                        .equalTo("netAvailable", true).findAll();
 
                 Log.d(TAG, "Realm chats size: " + realmResults.size());
-                size = realmResults.size();
-            }
-        });
-
-        return size;
-    }
-
-    int checkContactsRealmSize() {
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                RealmResults<UsersRealm> realmResults = realm
-                        .where(UsersRealm.class).findAll();
-
-                Log.d(TAG, "realm size for contacts: " + realmResults.size());
                 size = realmResults.size();
             }
         });
@@ -188,53 +214,6 @@ public class Middleware {
         });
 
         return str2;
-    }
-
-    String searchAllUsers() {
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                RealmResults<UsersRealm> realmResults = realm
-                        .where(UsersRealm.class).findAll();
-                Log.d(TAG, "realm contacts size: " + realmResults.size());
-
-                for (UsersRealm cr : realmResults) {
-                    if (str2.equals("")) {
-                        str2 = cr.getUserName();
-                    } else {
-                        str2 += ":" + cr.getUserName();
-                    }
-                }
-            }
-        });
-
-        return str2;
-    }
-
-    String searchUnuploadedMessages() {
-        realm.executeTransaction(new Realm.Transaction() {
-            @Override
-            public void execute(Realm realm) {
-                RealmResults<ChatsRealm> checkSize = realm.where(ChatsRealm.class)
-                        .findAll();
-                if (!checkSize.isEmpty()) {
-                    RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
-                            .equalTo("netAvailable", true).findAll();
-                    Log.d(TAG, "realm results size: " + realmResults.size());
-
-                    for (ChatsRealm str : realmResults) {
-                        Chats chats = new Chats(str.getUserFrom(), str.getUserTo(),
-                                str.getMsg(), str.getTime());
-
-                        /*Call<ChatsRealm>*/
-                    }
-                } else {
-                    str1 = "EMPTY";
-                }
-            }
-        });
-
-        return str1;
     }
 
     Boolean checkIfUserExists(final String userName) {
@@ -322,95 +301,66 @@ public class Middleware {
 
     void uploadChats() {
         apiInterface = APIClient.getClient().create(APIInterface.class);
+        final int num = (random.nextInt(1081) + 2000);
 
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
-                        .equalTo("netAvailable", true).findAll();
+                        .equalTo("netAvailable", false).findAll();
 
                 Log.d(TAG, "chats to upload -> size: " + realmResults.size());
-                Log.d(TAG, "-----------Begin-----------");
 
                 for (final ChatsRealm chatsRealm : realmResults) {
+                    Log.d(TAG, "-----------Begin unuploaded-----------");
                     Log.d(TAG, "messages that haven't been delivered yet: " +
                             chatsRealm.getMsg() + " user from : " + chatsRealm
-                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo());
+                            .getUserFrom() + " userTo: " + chatsRealm
+                            .getUserTo() + "user group: " + chatsRealm
+                            .getUploadCombo());
                     s = "messages that haven't been delivered yet: " +
                             chatsRealm.getMsg() + " user from : " + chatsRealm
-                            .getUserFrom() + " userTo: " + chatsRealm.getUserTo();
-                    /*Call<ResponseBody> call = apiInterface.fetchAllContactNames();
-                    call.enqueue(new retrofit2.Callback<ResponseBody>() {
+                            .getUserFrom() + " userTo: " + chatsRealm
+                            .getUserTo() + " user group: " + chatsRealm
+                            .getUploadCombo();
+
+                    Chats chats = new Chats(chatsRealm.getUserFrom(),
+                            chatsRealm.getUserTo(), chatsRealm.getMsg(),
+                            chatsRealm.getTime());
+                    Call<Chats> call = apiInterface.registerChat(chatsRealm
+                            .getUploadCombo().split("-")[0], chatsRealm
+                                    .getUploadCombo().split("-")[1], num+"",
+                            chats);
+                    call.enqueue(new retrofit2.Callback<Chats>() {
                         @Override
-                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                            Log.d(TAG, "contacts response code");
+                        public void onResponse(Call<Chats> call, Response<Chats> response) {
+                            Log.d(TAG, "response code: " + response.code());
+                            String displayRespUser;
 
-                            try {
-                                if (response.body().contentLength() > 4) {
-                                    JSONObject obj = new JSONObject(response.body().string());
+                            Chats chats = response.body();
 
-                                    for (int i=0; i<obj.length(); i++) {
-                                        if (str.equals("")) {
-                                            str = obj.names().get(i).toString();
-                                        } else {
-                                            str += ":" + obj.names().get(i).toString();
-                                        }
+                            String userFrom = chats.userFrom;
+                            String userTo = chats.userTo;
+                            String Msg = chats.Msg;
+                            String Time = chats.Time;
 
-                                        Log.d(TAG, "obj names: " + str);
-                                        for (String st : str.split(":")) {
-                                            if (st.equals(chatsRealm.getUserFrom()+
-                                                    "-"+chatsRealm.getUserTo())
-                                                    || s.equals(chatsRealm.getUserTo()+
-                                                    "-"+chatsRealm.getUserFrom())) {
-                                                if (s.equals("")) {
-                                                    s += "user chat exists: " + st;
-                                                } else {
-                                                    s += " * " + "user chat exists: " + st;
-                                                }
-                                            } else {
-                                                if (s.equals("")) {
-                                                    s += "user chat doesn't exists: " + st;
-                                                } else {
-                                                    s += " * " + "user chat doesn't exists: " + st;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Log.d(TAG, "value of s: " + s);
-                                    Log.d(TAG, "contact names: " + str);
-                                }
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
+                            displayRespUser = "UserFromName: " + userFrom +
+                                    " UserTo: " + userTo + " Msg: " + Msg +
+                                    " Time: " + Time;
+
+                            Log.d(TAG, displayRespUser);
+
+                            Log.d(TAG, "Data successfully uploaded");
                         }
 
                         @Override
-                        public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        public void onFailure(Call<Chats> call, Throwable t) {
 
                         }
-                    });*/
-                    /*for (String cr : str3.split(":")) {
-                        Log.d(TAG, "cr: " + cr);
-                        Log.d(TAG, chatsRealm.getUserFrom()+"-"+chatsRealm.getUserTo());
-                        if (cr.equals(chatsRealm.getUserFrom()+"-"+chatsRealm
-                                .getUserTo()) || cr.equals(chatsRealm
-                                .getUserTo()+"-"+chatsRealm.getUserFrom())) {
-                            if (s.equals("")) {
-                                s = "user chat exists: " + cr;
-                            } else {
-                                s += " * " + "user chat exists: " + cr;
-                            }
-                        } else {
-                            if (s.equals("")) {
-                                s = "user chat doesn't exists: " + cr;
-                            } else {
-                                s += " * " + "user chat doesn't exists: " + cr;
-                            }
-                        }
-                    }*/
+                    });
+
+                    Log.d(TAG, "------------End unuploaded------------");
                 }
-
-                Log.d(TAG, "------------End------------");
             }
         });
     }

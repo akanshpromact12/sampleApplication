@@ -12,6 +12,8 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+        multiDexEnabled true
     }
     buildTypes {
         release {
@@ -48,11 +50,7 @@ dependencies {
     compile dependencies.cardView
 
     compile dependencies.playService
-    compile dependencies.playServiceAuth
 
-    compile dependencies.firebaseDb
-    compile dependencies.firebaseAuth
-    compile dependencies.firebaseStorage
     compile dependencies.gson
     compile dependencies.retrofit
     compile dependencies.retrofitGson

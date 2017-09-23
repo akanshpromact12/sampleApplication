@@ -24,17 +24,18 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.*
 
-class ChatMainActivity : AppCompatActivity() {
+class ChatMainActivity : BaseActivity() {
     lateinit var contactsRecyclerView: RecyclerView
     lateinit var apiInterface: APIInterface
     lateinit var name: String
     val TAG: String = "ChatMainActivity"
-    var count: Int = 0;
+    var count: Int = 0
     var str: String = ""
     lateinit var contactsList: MutableList<String>
     lateinit var contactRealm: ContactRealm
     lateinit var usersRealm: UsersRealm
     lateinit var middleware: Middleware
+    lateinit var networkStatus1: NetworkStatus
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,6 +44,7 @@ class ChatMainActivity : AppCompatActivity() {
         apiInterface = APIClient.getClient().create(APIInterface::class.java)
         contactRealm = ContactRealm()
         middleware = Middleware()
+        networkStatus1 = NetworkStatus()
 
         val intent: Intent = intent
         if (SaveSharedPrefs.getName(this@ChatMainActivity).isEmpty()) {
@@ -59,54 +61,14 @@ class ChatMainActivity : AppCompatActivity() {
         getAllContacts()
     }
 
-    fun getMessageCount(name: String, contactsList: MutableList<ContactsBean>) {
-        for (contacts in contactsList) {
-            val call = apiInterface.ReceiveChats(name, contacts.contactName)
-            call.enqueue(object : Callback<ResponseBody> {
-                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                    Log.d(TAG, "response code: " + response.code())
-
-                    try {
-                        if (response.body().contentLength() > 4) {
-                            val jsonObject = JSONObject(response.body().string())
-                            val jsonArray = jsonObject.names()
-                            var sender: String
-                            var user: String
-
-                            for (i in 0..jsonArray.length() - 1) {
-                                val jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString())
-                                user = jsonObject1.getString("userTo")
-                                sender = jsonObject1.getString("userFrom")
-
-                                if (contacts.contactName == user) {
-                                    count++
-                                }
-                            }
-
-                            Log.d(TAG, "count: " + count)
-                            str += contacts.contactName + count
-                        }
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                    }
-
-                }
-
-                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-
-                }
-            })
-        }
-    }
-
     fun getAllContacts() {
         contactsList = ArrayList()
-
-        if (NetworkStatus.isNetworkAvailable(applicationContext)) {
+        if (networkStatus1.checkInternet(applicationContext)) {
             val call: Call<ResponseBody> = apiInterface.fetchAllUsers()
             call.enqueue(object : Callback<ResponseBody> {
                 override fun onResponse(call: Call<ResponseBody>?, response: Response<ResponseBody>?) {
                     try {
+                        Log.d(TAG, "hello")
                         if (response?.body()?.contentLength()!! > 4) {
                             val jsonObj: JSONObject = JSONObject(response.body()
                                     .string())

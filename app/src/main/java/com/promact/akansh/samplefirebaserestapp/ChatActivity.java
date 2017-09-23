@@ -41,7 +41,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class ChatActivity extends AppCompatActivity {
+public class ChatActivity extends BaseActivity {
     public static String TAG = "ChatActivity";
     public EditText textToSend;
     public FloatingActionButton sendButton;
@@ -57,12 +57,13 @@ public class ChatActivity extends AppCompatActivity {
     public String name;
     public ChatsRealm chatsRealm;
     public Middleware middleware;
+    public NetworkStatus networkStatus;
+    private String uploadString;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
-
 
         apiInterface = APIClient.getClient().create(APIInterface.class);
         textToSend = (EditText) findViewById(R.id.textToSend);
@@ -70,6 +71,7 @@ public class ChatActivity extends AppCompatActivity {
         chatView = (RecyclerView) findViewById(R.id.chatsRecycler);
         chatsRealm = new ChatsRealm();
         middleware = new Middleware();
+        networkStatus = new NetworkStatus();
         final String str = getIntent().getStringExtra("contactName");
         Log.d(TAG, "str: " + str);
         mLayoutManager = new LinearLayoutManager(this);
@@ -106,13 +108,14 @@ public class ChatActivity extends AppCompatActivity {
                     chatsRealm.setUserTo(str);
                     chatsRealm.setMsg(name + ": " + textToSend.getText().toString());
                     chatsRealm.setTime(date);
-                    if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+                    if (networkStatus.checkInternet(getApplicationContext())) {
                         chatsRealm.setNetAvailable(true);
                     } else {
                         chatsRealm.setNetAvailable(false);
                     }
+                    chatsRealm.setChatsInNumber(chatsRealm.getChatsInNumber()+1);
+
                     Log.d(TAG, "above");
-                    middleware.addChats(chatsRealm);
                     Log.d(TAG, "below");
                     chatStr.add(textToSend.getText().toString());
 
@@ -127,16 +130,20 @@ public class ChatActivity extends AppCompatActivity {
 
                     textToSend.setText("");
 
-                    if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+                    if (networkStatus.checkInternet(getApplicationContext())) {
                         Call<Chats> call = null;
                         if (!chatsAdapter.getFirstItemName().equals("")) {
                             if (chatsAdapter.getFirstItemName().split(":")[0].equals(str)) {
                                 call = apiInterface.registerChat(str, name, num+"",
                                         chats);
+                                uploadString = str+"-"+name;
                             } else {
                                 call = apiInterface.registerChat(name, str, num+"",
                                         chats);
+                                uploadString = name + "-" + str;
                             }
+                            chatsRealm.setUploadCombo(uploadString);
+                            middleware.addChats(chatsRealm);
                         }
 
                         if (call != null) {
@@ -181,7 +188,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void fetchAllPrevMsg(final String str) {
-        if (NetworkStatus.isNetworkAvailable(getApplicationContext())) {
+        if (networkStatus.checkInternet(getApplicationContext())) {
             //str-name combination
             Call<ResponseBody> call = apiInterface.ReceiveChats(str, name);
             call.enqueue(new Callback<ResponseBody>() {
@@ -193,6 +200,7 @@ public class ChatActivity extends AppCompatActivity {
                         if (response.body().contentLength() > 4) {
                             JSONObject jsonObject = new JSONObject(response.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
                             JSONArray jsonArray = jsonObject.names();
+                            Log.d(TAG, "jsonArray: " + jsonArray.length());
 
                             for (int i=0; i<jsonArray.length(); i++) {
                                 JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
@@ -207,9 +215,11 @@ public class ChatActivity extends AppCompatActivity {
                                 chatsRealm.setMsg(jsonObject1.getString("Msg"));
                                 chatsRealm.setTime(jsonObject1.getString("Time"));
                                 chatsRealm.setNetAvailable(true);
-                                if (chatSize >= chatRealmSize) {
+                                if (chatRealmSize <= jsonArray.length()) {
                                     middleware.addChats(chatsRealm);
                                 }
+                                chatsRealm.setUploadCombo(str+"-"+name);
+                                chatsRealm.setChatsInNumber(jsonArray.length());
 
                                 if (msg.split(":")[0].equals(name)) {
                                     chatStr.add("You: " + msg.split(":")[1]);
@@ -250,8 +260,23 @@ public class ChatActivity extends AppCompatActivity {
 
                             for (int i=0; i<jsonArray.length(); i++) {
                                 JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
+                                int chatSize = jsonArray.length();
+                                Log.d(TAG, "chatSize: " + chatSize);
+                                Log.d(TAG, "jsonObj: " + jsonObject1);
+                                int chatRealmSize = middleware.checkChatRealmSize();
                                 String msg = jsonObject1.getString("Msg");
                                 String userTo = jsonObject1.getString("userTo");
+
+                                chatsRealm.setUserFrom(jsonObject1.getString("userFrom"));
+                                chatsRealm.setUserTo(jsonObject1.getString("userTo"));
+                                chatsRealm.setMsg(jsonObject1.getString("Msg"));
+                                chatsRealm.setTime(jsonObject1.getString("Time"));
+                                chatsRealm.setNetAvailable(true);
+                                if (chatRealmSize <= jsonArray.length()) {
+                                    middleware.addChats(chatsRealm);
+                                }
+                                chatsRealm.setUploadCombo(name+"-"+str);
+                                chatsRealm.setChatsInNumber(jsonArray.length());
 
                                 if (msg.split(":")[0].equals(name)) {
                                     chatStr.add("You: " + msg.split(":")[1]);
@@ -299,7 +324,7 @@ public class ChatActivity extends AppCompatActivity {
             chatsAdapter = new ChatsAdapter(ChatActivity.this, chatStr);
             chatView.setAdapter(chatsAdapter);
         }
-        middleware.uploadChats();
+        //middleware.uploadChats();
     }
 
     @Override

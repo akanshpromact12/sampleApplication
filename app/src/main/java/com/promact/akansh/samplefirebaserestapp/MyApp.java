@@ -1,6 +1,10 @@
 package com.promact.akansh.samplefirebaserestapp;
 
 import android.app.Application;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
@@ -10,6 +14,8 @@ import io.realm.RealmConfiguration;
  */
 
 public class MyApp extends Application {
+    private NetworkStatus networkStatus;
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -21,5 +27,18 @@ public class MyApp extends Application {
                 .deleteRealmIfMigrationNeeded()
                 .build();
         Realm.setDefaultConfiguration(realmConfiguration);
+
+        IntentFilter intentFilter = new IntentFilter("android.intent.action" +
+                ".MAIN");
+        networkStatus = new NetworkStatus();
+
+        getApplicationContext().registerReceiver(networkStatus, intentFilter);
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
+
+        getApplicationContext().unregisterReceiver(this.networkStatus);
     }
 }
