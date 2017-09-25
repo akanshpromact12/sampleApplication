@@ -13,6 +13,7 @@ import com.promact.akansh.samplefirebaserestapp.pojo.Chats;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -25,10 +26,12 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
     private Context context;
     private ArrayList<String> textToSend = new ArrayList<>();
     private String str = "";
+    private String date = "";
 
-    public ChatsAdapter(Context context, ArrayList<String> textToSend) {
+    public ChatsAdapter(Context context, ArrayList<String> textToSend, String date) {
         this.context = context;
         this.textToSend = textToSend;
+        this.date = date;
     }
 
     @Override
@@ -55,18 +58,17 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
     @Override
     public void onBindViewHolder(ChatsAdapter.ChatViewHolder holder, int position) {
         Log.d("Inside ChatsAdapter", "/ChatsAdapter");
-        String time = new SimpleDateFormat("HH:MM", Locale.getDefault())
-                .format(new Date());
+        String chatText;
+        String dt = date.replaceAll(("/"+Calendar.getInstance()
+                .get(Calendar.YEAR)), "");
 
         if (textToSend.size()==0) {
-            String chatText = textToSend.get(position);
-            holder.chat.setText(chatText.trim());
-            holder.chatTime.setText(time);
+            chatText = textToSend.get(position);
         } else {
-            String chatText = textToSend.get(holder.getAdapterPosition());
-            holder.chat.setText(chatText.trim());
-            holder.chatTime.setText(time);
+            chatText = textToSend.get(holder.getAdapterPosition());
         }
+        holder.chat.setText(chatText.trim());
+        holder.chatTime.setText(dt.split("-")[position]);
     }
 
     static class ChatViewHolder extends RecyclerView.ViewHolder {

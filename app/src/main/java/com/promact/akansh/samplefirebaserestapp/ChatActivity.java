@@ -1,11 +1,11 @@
 package com.promact.akansh.samplefirebaserestapp;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.NavUtils;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -16,26 +16,18 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.promact.akansh.samplefirebaserestapp.pojo.Chats;
 import com.promact.akansh.samplefirebaserestapp.pojo.ChatsRealm;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 
-import io.realm.Realm;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -47,10 +39,6 @@ public class ChatActivity extends BaseActivity {
     public FloatingActionButton sendButton;
     public APIInterface apiInterface;
     public RecyclerView chatView;
-    public int number = 0;
-    private RecyclerView.LayoutManager mLayoutManager;
-    public static int nm = 0;
-    public static int n = 0;
     Random random = new Random();
     public ChatsAdapter chatsAdapter;
     private ArrayList<String> chatStr;
@@ -74,7 +62,7 @@ public class ChatActivity extends BaseActivity {
         networkStatus = new NetworkStatus();
         final String str = getIntent().getStringExtra("contactName");
         Log.d(TAG, "str: " + str);
-        mLayoutManager = new LinearLayoutManager(this);
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(this);
         if (SaveSharedPrefs.getName(ChatActivity.this).isEmpty()) {
             name = getIntent().getStringExtra("name");
         } else {
@@ -90,14 +78,13 @@ public class ChatActivity extends BaseActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         chatView.setLayoutManager(mLayoutManager);
         chatStr = new ArrayList<>();
-        /*String str3 = middleware.checkNames();
-        Log.d(TAG, "check names: " + str3);*/
+
         fetchAllPrevMsg(str);
 
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String date = new SimpleDateFormat("ddMyyyy", Locale.getDefault())
+                String date = new SimpleDateFormat("dd/MM/YYYY hh:mm", Locale.getDefault())
                         .format(new Date());
                 if (!textToSend.getText().toString().equalsIgnoreCase("")) {
                     int num = (random.nextInt(1081) + 2000);
@@ -121,7 +108,7 @@ public class ChatActivity extends BaseActivity {
 
                     if (chatView.getAdapter() == null) {
                         chatsAdapter = new ChatsAdapter(ChatActivity.this,
-                                chatStr);
+                                chatStr, date);
 
                         chatView.setAdapter(chatsAdapter);
                     } else {
@@ -133,13 +120,18 @@ public class ChatActivity extends BaseActivity {
                     if (networkStatus.checkInternet(getApplicationContext())) {
                         Call<Chats> call = null;
                         if (!chatsAdapter.getFirstItemName().equals("")) {
-                            if (chatsAdapter.getFirstItemName().split(":")[0].equals(str)) {
+                            Log.d(TAG, "First chat: "+chatsAdapter.getFirstItemName()
+                                    .split(":")[0]);
+                            Log.d(TAG, "str: " + str);
+                            if (chatsAdapter.getFirstItemName().split(":")[0].equals("You")) {
                                 call = apiInterface.registerChat(str, name, num+"",
                                         chats);
+                                Log.d(TAG, "call: " + str+"-"+name);
                                 uploadString = str+"-"+name;
                             } else {
                                 call = apiInterface.registerChat(name, str, num+"",
                                         chats);
+                                Log.d(TAG, "call: " + name+"-"+str);
                                 uploadString = name + "-" + str;
                             }
                             chatsRealm.setUploadCombo(uploadString);
@@ -151,7 +143,7 @@ public class ChatActivity extends BaseActivity {
                                 @Override
                                 public void onResponse(Call<Chats> call, Response<Chats> response) {
                                     Log.d(TAG, "response code: " + response.code());
-                                    String displayRespUser = "";
+                                    String displayRespUser;
 
                                     Chats chats = response.body();
 
@@ -164,8 +156,7 @@ public class ChatActivity extends BaseActivity {
                                             " UserTo: " + userTo + " Msg: " + Msg +
                                             " Time: " + Time;
 
-                                    Log.d(TAG, "UserFromName: " + userFrom + " UserTo: " +
-                                            userTo + " Msg: " + Msg + " Time: " + Time);
+                                    Log.d(TAG, displayRespUser);
 
                                     Log.d(TAG, "Data successfully uploaded");
                                 }
@@ -181,6 +172,18 @@ public class ChatActivity extends BaseActivity {
                                 "Internet not available. Messages will be delivered" +
                                         "when internet is turned on.",
                                 Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, "internet not available");
+                        if (!chatsAdapter.getFirstItemName().equals("")) {
+                            if (chatsAdapter.getFirstItemName().split(":")[0].equals("You")) {
+                                uploadString = str+"-"+name;
+                                Log.d(TAG, "internet not available->str-name");
+                            } else {
+                                uploadString = name + "-" + str;
+                                Log.d(TAG, "internet not available->name-str");
+                            }
+                            chatsRealm.setUploadCombo(uploadString);
+                            middleware.addChats(chatsRealm);
+                        }
                     }
                 }
             }
@@ -200,6 +203,7 @@ public class ChatActivity extends BaseActivity {
                         if (response.body().contentLength() > 4) {
                             JSONObject jsonObject = new JSONObject(response.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
                             JSONArray jsonArray = jsonObject.names();
+                            String time = "";
                             Log.d(TAG, "jsonArray: " + jsonArray.length());
 
                             for (int i=0; i<jsonArray.length(); i++) {
@@ -226,10 +230,16 @@ public class ChatActivity extends BaseActivity {
                                 } else {
                                     chatStr.add(msg);
                                 }
+
+                                if (time.equals("")) {
+                                    time = jsonObject1.getString("Time");
+                                } else {
+                                    time += "-" + jsonObject1.getString("Time");
+                                }
                             }
 
                             chatsAdapter = new ChatsAdapter(ChatActivity.this,
-                                    chatStr);
+                                    chatStr, time);
 
                             chatView.setAdapter(chatsAdapter);
                         }
@@ -257,6 +267,7 @@ public class ChatActivity extends BaseActivity {
                         if (response1.body().contentLength() > 4) {
                             JSONObject jsonObject = new JSONObject(response1.body().string());/*  (new JsonParser()).parse(response.body().string()).getAsJsonObject();*/
                             JSONArray jsonArray = jsonObject.names();
+                            String timer = "";
 
                             for (int i=0; i<jsonArray.length(); i++) {
                                 JSONObject jsonObject1 = jsonObject.getJSONObject(jsonArray.get(i).toString());
@@ -265,7 +276,6 @@ public class ChatActivity extends BaseActivity {
                                 Log.d(TAG, "jsonObj: " + jsonObject1);
                                 int chatRealmSize = middleware.checkChatRealmSize();
                                 String msg = jsonObject1.getString("Msg");
-                                String userTo = jsonObject1.getString("userTo");
 
                                 chatsRealm.setUserFrom(jsonObject1.getString("userFrom"));
                                 chatsRealm.setUserTo(jsonObject1.getString("userTo"));
@@ -283,10 +293,16 @@ public class ChatActivity extends BaseActivity {
                                 } else {
                                     chatStr.add(msg);
                                 }
+
+                                if (timer.equals("")) {
+                                    timer = jsonObject1.getString("Time");
+                                } else {
+                                    timer += "-" + jsonObject1.getString("Time");
+                                }
                             }
 
                             chatsAdapter = new ChatsAdapter(ChatActivity.this,
-                                    chatStr);
+                                    chatStr, chatsRealm.getTime());
                             //chatsAdapter.notifyDataSetChanged();
                             chatView.setAdapter(chatsAdapter);
                         }
@@ -312,17 +328,24 @@ public class ChatActivity extends BaseActivity {
                 Toast.makeText(ChatActivity.this, "This is the first time of chating " +
                         "with " + str + ".", Toast.LENGTH_SHORT).show();
             } else {
+                String g = "";
                 for (String s : str1.split("-")) {
-                    if (s.split(":")[0].trim().equals(name)) {
+                    if (g.equals("")) {
+                        g = s.split(",")[0];
+                    } else {
+                        g += "-" + s.split(",")[0];
+                    }
+
+                    if (s.split(",")[0].split(":")[0].trim().equals(name)) {
                         chatStr.add("You: " + s.split(":")[1]);
-                    } else if (s.split(":")[0].trim().equals(str)) {
+                    } else if (s.split(",")[0].split(":")[0].trim().equals(str)) {
                         chatStr.add(s);
                     }
                 }
-            }
 
-            chatsAdapter = new ChatsAdapter(ChatActivity.this, chatStr);
-            chatView.setAdapter(chatsAdapter);
+                chatsAdapter = new ChatsAdapter(ChatActivity.this, chatStr, g);
+                chatView.setAdapter(chatsAdapter);
+            }
         }
         //middleware.uploadChats();
     }
@@ -344,8 +367,12 @@ public class ChatActivity extends BaseActivity {
             case R.id.logoutChats:
                 Toast.makeText(ChatActivity.this, "You just logged out!!",
                         Toast.LENGTH_SHORT).show();
+                //SaveSharedPrefs.clearAllPrefs(getApplicationContext());
+                SharedPreferences.Editor editor = SaveSharedPrefs.getSharedPrefs(getApplicationContext()).edit();
+                editor.clear();
+                editor.apply();
+                finish();
 
-                SaveSharedPrefs.clearAllPrefs(getApplicationContext());
                 Intent intent = new Intent(ChatActivity.this,
                         MainActivity.class);
                 startActivity(intent);

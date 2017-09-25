@@ -37,6 +37,7 @@ public class Middleware {
     private String s="";
     private Boolean chatExists = false;
     private Random random = new Random();
+    private String time = "";
 
     void addChats(ChatsRealm chats) {
 
@@ -249,9 +250,9 @@ public class Middleware {
                     for (ChatsRealm str : realmResults) {
                         Log.d(TAG, "msgs: " + str);
                         if (str1.equals("")) {
-                            str1 = str.getMsg();
+                            str1 = str.getMsg() +","+ str.getTime();
                         } else {
-                            str1 += "-" + str.getMsg();
+                            str1 += "-" + str.getMsg() +","+ str.getTime();
                         }
                     }
                 } else {
@@ -261,6 +262,27 @@ public class Middleware {
         });
 
         return str1;
+    }
+
+    String checkTime() {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                /*RealmResults<ChatsRealm> realmResults = realm
+                        .where(ChatsRealm.class).findAll();*/
+
+                /*for (ChatsRealm cr : realmResults) {
+                    if (time.equals("")) {
+                        time = cr.getTime();
+                    } else {
+                        time += "-"+cr.getTime();
+                    }
+                }*/
+                time = realm.where(ChatsRealm.class).findFirst().getTime();
+            }
+        });
+
+        return time;
     }
 
     String checkNames() {
@@ -305,7 +327,7 @@ public class Middleware {
 
         realm.executeTransaction(new Realm.Transaction() {
             @Override
-            public void execute(Realm realm) {
+            public void execute(final Realm realm) {
                 RealmResults<ChatsRealm> realmResults = realm.where(ChatsRealm.class)
                         .equalTo("netAvailable", false).findAll();
 
@@ -351,6 +373,13 @@ public class Middleware {
                             Log.d(TAG, displayRespUser);
 
                             Log.d(TAG, "Data successfully uploaded");
+                            realm.executeTransaction(new Realm.Transaction() {
+                                @Override
+                                public void execute(Realm realm) {
+                                    chatsRealm.setNetAvailable(true);
+                                    realm.insertOrUpdate(chatsRealm);
+                                }
+                            });
                         }
 
                         @Override

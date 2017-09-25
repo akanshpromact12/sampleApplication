@@ -15,6 +15,7 @@ import com.promact.akansh.samplefirebaserestapp.pojo.ContactsBean;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Calendar;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -31,13 +32,15 @@ class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHo
     private static final String TAG = "ChatMainActivity";
     public static int count = 0;
     private String str;
+    private String time;
 
     public ContactsAdapter(List<String> contacts, Context context, String name,
-                           String str) {
+                           String str, String time) {
         this.contacts = contacts;
         this.context = context;
         this.name = name;
         this.str = str;
+        this.time = time;
     }
 
     @Override
@@ -54,6 +57,8 @@ class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHo
     @Override
     public void onBindViewHolder(final ContactsAdapter.ContactViewHolder holder, int position) {
         final String contactName = contacts.get(position);
+        final String dt = time.replaceAll(("/"+ Calendar.getInstance()
+                .get(Calendar.YEAR)), "");
 
         Log.d("ChatsContactNames", "contacts: " + str);
         holder.contactName.setText(contactName);
@@ -68,17 +73,20 @@ class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHo
                 context.startActivity(intent);
             }
         });
+        holder.time.setText(dt/*.split("-")[position]*/);
     }
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {
         CircleImageView contactImage;
         TextView contactName;
+        TextView time;
 
         ContactViewHolder(View itemView) {
             super(itemView);
 
             contactImage = (CircleImageView) itemView.findViewById(R.id.contact_image);
             contactName = (TextView) itemView.findViewById(R.id.contact_name);
+            time = (TextView) itemView.findViewById(R.id.time_of_msg);
         }
     }
 }
