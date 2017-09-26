@@ -2,6 +2,7 @@ package com.promact.akansh.samplefirebaserestapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.StrictMode
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
@@ -9,6 +10,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
+import com.promact.akansh.samplefirebaserestapp.pojo.Chats
 import com.promact.akansh.samplefirebaserestapp.pojo.ContactRealm
 import com.promact.akansh.samplefirebaserestapp.pojo.UsersRealm
 import okhttp3.ResponseBody
@@ -30,10 +32,14 @@ class ChatMainActivity : BaseActivity() {
     lateinit var middleware: Middleware
     lateinit var networkStatus1: NetworkStatus
     lateinit var contactsAdapter: ContactsAdapter
+    var time: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat_main)
+
+        val policy = StrictMode.ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
 
         apiInterface = APIClient.getClient().create(APIInterface::class.java)
         contactRealm = ContactRealm()
@@ -53,8 +59,88 @@ class ChatMainActivity : BaseActivity() {
         supportActionBar?.title = getString(R.string.sender_name) + name
 
         contactsRecyclerView = findViewById(R.id.contacts_recycler_view) as RecyclerView
-        getAllContacts()
+        Log.d(TAG, "start")
+        val users = synchronousGetUsers()
+        val time = synchronousGetChats(users)
+        Log.d(TAG, "time $time")
+        Log.d(TAG, " end ")
+        getAllContacts(time)
         getAllUsers()
+    }
+
+    fun synchronousGetUsers(): String {
+        val call = apiInterface.fetchAllUsers()
+        val resp = call.execute()
+        var users = ""
+
+        if (resp.body().contentLength() > 4) {
+            val jsonObj = JSONObject(resp.body().string())
+
+            for (i in 0..(jsonObj.length()-1)) {
+                if (users.equals("")) {
+                    users = jsonObj.names().get(i) as String
+                } else {
+                    users += "-" + jsonObj.names().get(i) as String
+                }
+            }
+        }
+        Log.d(TAG, "names: $users\n")
+
+        return users
+    }
+
+    fun synchronousGetChats(users: String): String {
+        var time = ""
+        for (i in 0..(users.split("-").size-1)) {
+            val call = apiInterface.ReceiveChats(users.split("-")[i], name)
+            val call1 = apiInterface.ReceiveChats(name, users.split("-")[i])
+            val resp = call.execute()
+            val resp1 = call1.execute()
+
+            if (resp.body().contentLength() > 4) {
+                val jsonObj = JSONObject(resp.body().string())
+                val jsonArr = jsonObj.names()
+                Log.d(TAG, "Outside1")
+
+                for (i in 0..(jsonArr.length() - 1)) {
+                    val jsonObj1 = jsonObj.getJSONObject(jsonArr.get(i).toString())
+                    Log.d(TAG, "time: ${jsonObj1.getString("Time")}")
+
+                    if (time.equals("")) {
+                        time = users.split("-")[i] + "-" + name + "~" + jsonObj1
+                                .getString("Time")
+                    } else {
+                        time += "_" + users.split("-")[i] + "-" + name + "~" + jsonObj1
+                                .getString("Time")
+                    }
+                    Log.d(TAG, "Inside1")
+                }
+                Log.d(TAG, "Outside1\n$time")
+            }
+
+            if (resp1.body().contentLength() > 4) {
+                val jsonObj2 = JSONObject(resp1.body().string())
+                val jsonArr2 = jsonObj2.names()
+                Log.d(TAG, "Outside2")
+
+                for (i in 0..(jsonArr2.length() - 1)) {
+                    val jsonObj2 = jsonObj2.getJSONObject(jsonArr2.get(i).toString())
+                    Log.d(TAG, "time: ${jsonObj2.getString("Time")}")
+
+                    if (time.equals("")) {
+                        time = users.split("-")[i] + "-" + name + "~" + jsonObj2
+                                .getString("Time")
+                    } else {
+                        time += "_" + users.split("-")[i] + "-" + name + "~" + jsonObj2
+                                .getString("Time")
+                    }
+                    Log.d(TAG, "Inside2")
+                }
+                Log.d(TAG, "Outside2\n$time")
+            }
+        }
+
+        return time
     }
 
     fun getAllUsers() {
@@ -94,10 +180,14 @@ class ChatMainActivity : BaseActivity() {
         }
     }
 
-    fun getAllContacts() {
+    fun getAllContacts(timeStr: String) {
         contactsList = ArrayList()
-        var str = ""
-        var time = ""
+        Log.d(TAG, "In getAllContacts() -> $timeStr")
+        for (i in 0..(timeStr.split("_").size-1)) {
+            Log.d(TAG, "timeStr: ${timeStr.split("_")[i].split("~")[1]
+                    .replace(("/"+ Calendar.getInstance()
+                            .get(Calendar.YEAR)), "")}")
+        }
         if (networkStatus1.checkInternet(applicationContext)) {
             val call: Call<ResponseBody> = apiInterface.fetchAllUsers()
             call.enqueue(object : Callback<ResponseBody> {
@@ -125,7 +215,7 @@ class ChatMainActivity : BaseActivity() {
                                             "contacts added", Toast.LENGTH_SHORT)
                                             .show()
                                     Log.d(TAG, "contacts added to realm")
-                                }
+                                }/*
 
                                 val call1 = apiInterface.ReceiveChats(user, name)
                                 val call2 = apiInterface.ReceiveChats(name, user)
@@ -140,7 +230,7 @@ class ChatMainActivity : BaseActivity() {
                                                 val jsonArr1 = jsonObj1.names()
 
                                                 val jsonObject1 = jsonObj1.getJSONObject(jsonArr1.get(0).toString())
-                                                if (time.equals("")) {
+                                                if (time == "") {
                                                     time = jsonObject1.getString("Time")
                                                     Log.d(TAG, "time1: $time")
                                                 } else {
@@ -169,14 +259,25 @@ class ChatMainActivity : BaseActivity() {
                                                 val jsonArr1 = jsonObj1.names()
 
                                                 val jsonObject1 = jsonObj1.getJSONObject(jsonArr1.get(0).toString())
-                                                if (time.equals("")) {
+                                                if (time == "") {
                                                     time = jsonObject1.getString("Time")
                                                     Log.d(TAG, "time2: $time")
                                                 } else {
                                                     time += "-"+jsonObject1.getString("Time")
                                                 }
-
-                                                contactsAdapter = ContactsAdapter()
+                                                if (contactsRecyclerView.adapter == null) {
+                                                    contactsAdapter = ContactsAdapter(contactsList,
+                                                            applicationContext, name, str, time)
+                                                    contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
+                                                    contactsRecyclerView.adapter = contactsAdapter
+                                                } else {
+                                                    contactsAdapter.notifyDataSetChanged()
+                                                }
+                                                *//*
+                                                contactsAdapter = ContactsAdapter(contactsList,
+                                                        applicationContext, name, str, time)
+                                                contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
+                                                contactsRecyclerView.adapter = contactsAdapter*//*
                                             }
                                         } catch (ex: Exception) {
                                             ex.printStackTrace()
@@ -186,11 +287,12 @@ class ChatMainActivity : BaseActivity() {
                                     override fun onFailure(call2: Call<ResponseBody>?, t2: Throwable?) {
 
                                     }
-                                })
+                                })*/
                             }
-                            Log.d(TAG, "final time: $time")
+
+                            Log.d(TAG, "final time: $timeStr")
                             contactsAdapter = ContactsAdapter(contactsList,
-                                    applicationContext, name, str, time)
+                                    applicationContext, name, str, timeStr)
                             contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
                             contactsRecyclerView.adapter = contactsAdapter
                         }

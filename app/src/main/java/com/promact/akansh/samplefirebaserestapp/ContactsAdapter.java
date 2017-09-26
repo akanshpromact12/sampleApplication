@@ -24,7 +24,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHolder> {
+public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHolder> {
     private List<String> contacts;
     private Context context;
     private String name;
@@ -57,8 +57,7 @@ class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHo
     @Override
     public void onBindViewHolder(final ContactsAdapter.ContactViewHolder holder, int position) {
         final String contactName = contacts.get(position);
-        final String dt = time.replaceAll(("/"+ Calendar.getInstance()
-                .get(Calendar.YEAR)), "");
+        Log.d(TAG, "time adapter: " + time);
 
         Log.d("ChatsContactNames", "contacts: " + str);
         holder.contactName.setText(contactName);
@@ -73,7 +72,25 @@ class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.ContactViewHo
                 context.startActivity(intent);
             }
         });
-        holder.time.setText(dt/*.split("-")[position]*/);
+
+        for (int i=0; i<time.split("_").length; i++) {
+            String t1 = time.split("_")[i].split("~")[0].split("-")[0];
+            String t2 = time.split("_")[i].split("~")[0].split("-")[1];
+
+            Log.d(TAG, "contractName: " + contactName + " t1: " + t1);
+            Log.d(TAG, "contractName: " + contactName.equals(t1));
+
+            if (contactName.equals(t1) || contactName.equals(t2)) {
+                Log.d(TAG, "same name" + time.split("_")[i].split("~")[1]
+                        .replaceAll(("/"+ Calendar.getInstance()
+                                .get(Calendar.YEAR)), ""));
+                holder.time.setText(time.split("_")[i].split("~")[1]
+                        .replaceAll(("/"+ Calendar.getInstance()
+                                .get(Calendar.YEAR)), ""));
+            } else {
+                holder.time.setText("");
+            }
+        }
     }
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {

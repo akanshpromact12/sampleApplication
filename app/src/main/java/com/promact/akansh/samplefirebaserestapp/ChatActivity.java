@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import com.promact.akansh.samplefirebaserestapp.pojo.Chats;
 import com.promact.akansh.samplefirebaserestapp.pojo.ChatsRealm;
+import com.promact.akansh.samplefirebaserestapp.pojo.Users;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
