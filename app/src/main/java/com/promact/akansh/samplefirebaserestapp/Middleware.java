@@ -10,6 +10,9 @@ import com.promact.akansh.samplefirebaserestapp.pojo.UsersRealm;
 
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
@@ -80,6 +83,39 @@ public class Middleware {
                 Log.d(TAG, "------------End------------");
             }
         });
+    }
+
+    Map<String, ChatsRealm> getNumberOfChats() {
+        final Map<String, String> users = new HashMap<>();
+        final Map<String, ChatsRealm> chats = new HashMap<>();
+
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<UsersRealm> usersList = realm.where(UsersRealm.class)
+                        .findAll();
+
+                for (UsersRealm usersRealm : usersList) {
+                    users.put(usersRealm.getUserName(), "");
+                }
+            }
+        });
+
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<ChatsRealm> chatsList = realm.where(ChatsRealm.class)
+                        .findAll();
+
+                for (String key : users.keySet()) {
+                    for (ChatsRealm chatsRealm : chatsList) {
+                        chats.put(key, chatsRealm);
+                    }
+                }
+            }
+        });
+
+        return chats;
     }
 
     Boolean checkIfChatExists(final String userFrom, final String userTo, final String msg, final String Time) {
@@ -348,7 +384,8 @@ public class Middleware {
 
                     Chats chats = new Chats(chatsRealm.getUserFrom(),
                             chatsRealm.getUserTo(), chatsRealm.getMsg(),
-                            chatsRealm.getTime());
+                            chatsRealm.getTime(), chatsRealm
+                            .getUploadCombo());
                     Call<Chats> call = apiInterface.registerChat(chatsRealm
                             .getUploadCombo().split("-")[0], chatsRealm
                                     .getUploadCombo().split("-")[1], num+"",

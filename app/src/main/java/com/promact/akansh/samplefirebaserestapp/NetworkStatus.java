@@ -5,11 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.util.Log;
-import android.widget.Toast;
-
-/**
- * Created by Akansh on 18-09-2017.
- */
 
 public class NetworkStatus extends BroadcastReceiver {
     public final static String TAG = "NetworkStatus";
@@ -24,10 +19,8 @@ public class NetworkStatus extends BroadcastReceiver {
 
         if (checkInternet(context)) {
             Log.d(TAG, "Network available");
-            Toast.makeText(context, "Network Available", Toast.LENGTH_SHORT).show();
         } else {
             Log.d(TAG, "Network unavailable");
-            Toast.makeText(context, "Network Unavailable", Toast.LENGTH_SHORT).show();
         }
     }
 

@@ -89,9 +89,29 @@ public class ChatActivity extends BaseActivity {
                         .format(new Date());
                 if (!textToSend.getText().toString().equalsIgnoreCase("")) {
                     int num = (random.nextInt(1081) + 2000);
+                    Chats chats = null;
+                    if (!chatsAdapter.getFirstItemName().equals("")) {
+                        Log.d(TAG, "First chat: "+chatsAdapter.getFirstItemName()
+                                .split(":")[0]);
+                        Log.d(TAG, "str: " + str);
+                        if (chatsAdapter.getFirstItemName().split(":")[0].equals("You")) {
 
-                    Chats chats = new Chats(name, str,
-                            name + ": " + textToSend.getText().toString(), date);
+                            chats = new Chats(name, str,
+                                    name + ": " + textToSend.getText().toString(), date,
+                                    str+"-"+name);
+                            Log.d(TAG, "call: " + str+"-"+name);
+                            uploadString = str+"-"+name;
+                        } else {
+                            chats = new Chats(name, str,
+                                    name + ": " + textToSend.getText().toString(), date,
+                                    name+"-"+str);
+                            Log.d(TAG, "call: " + name+"-"+str);
+                            uploadString = name + "-" + str;
+                        }
+                        chatsRealm.setUploadCombo(uploadString);
+                        middleware.addChats(chatsRealm);
+                    }
+
                     chatsRealm.setUserFrom(name);
                     chatsRealm.setUserTo(str);
                     chatsRealm.setMsg(name + ": " + textToSend.getText().toString());

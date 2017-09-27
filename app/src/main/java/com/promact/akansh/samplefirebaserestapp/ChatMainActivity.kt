@@ -11,6 +11,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import com.promact.akansh.samplefirebaserestapp.pojo.Chats
+import com.promact.akansh.samplefirebaserestapp.pojo.ChatsRealm
 import com.promact.akansh.samplefirebaserestapp.pojo.ContactRealm
 import com.promact.akansh.samplefirebaserestapp.pojo.UsersRealm
 import okhttp3.ResponseBody
@@ -19,6 +20,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class ChatMainActivity : BaseActivity() {
     lateinit var contactsRecyclerView: RecyclerView
@@ -62,57 +65,77 @@ class ChatMainActivity : BaseActivity() {
         Log.d(TAG, "start")
         val users = synchronousGetUsers()
         val time = synchronousGetChats(users)
-        Log.d(TAG, "time $time")
+        for (i in 0..(users.size-1)) {
+            if (!time[users[i]].isNullOrBlank()) {
+                Log.d(TAG, "Array elements: " + time[users[i]])
+            }
+        }
         Log.d(TAG, " end ")
-        getAllContacts(time)
+        getAllContacts(time, users)
         getAllUsers()
+        getChatsCountFromRealm()
     }
 
-    fun synchronousGetUsers(): String {
+    fun getChatsCountFromRealm() {
+
+    }
+
+    fun synchronousGetUsers(): ArrayList<String> {
         val call = apiInterface.fetchAllUsers()
         val resp = call.execute()
         var users = ""
+        var userList = ArrayList<String>()
 
         if (resp.body().contentLength() > 4) {
             val jsonObj = JSONObject(resp.body().string())
 
             for (i in 0..(jsonObj.length()-1)) {
-                if (users.equals("")) {
+                /*if (users.equals("")) {
                     users = jsonObj.names().get(i) as String
                 } else {
                     users += "-" + jsonObj.names().get(i) as String
-                }
+                }*/
+                userList.add(jsonObj.names().get(i).toString())
             }
         }
-        Log.d(TAG, "names: $users\n")
+        Log.d(TAG, "names: ${userList.size}\n")
 
-        return users
+        return userList
     }
 
-    fun synchronousGetChats(users: String): String {
-        var time = ""
-        for (i in 0..(users.split("-").size-1)) {
-            val call = apiInterface.ReceiveChats(users.split("-")[i], name)
-            val call1 = apiInterface.ReceiveChats(name, users.split("-")[i])
+    fun synchronousGetChats(users: ArrayList<String>): MutableMap<String, String> {
+        val time = ""
+        val chatTimes: MutableMap<String, String> = HashMap()
+
+        for (i in 0..(users.size-1)) {
+            val call = apiInterface.ReceiveChats(users[i], name)
+            val call1 = apiInterface.ReceiveChats(name, users[i])
             val resp = call.execute()
             val resp1 = call1.execute()
 
             if (resp.body().contentLength() > 4) {
                 val jsonObj = JSONObject(resp.body().string())
                 val jsonArr = jsonObj.names()
+                Log.d(TAG, "users: " + users)
                 Log.d(TAG, "Outside1")
 
                 for (i in 0..(jsonArr.length() - 1)) {
                     val jsonObj1 = jsonObj.getJSONObject(jsonArr.get(i).toString())
                     Log.d(TAG, "time: ${jsonObj1.getString("Time")}")
 
-                    if (time.equals("")) {
+                   /* val s = users[i] + "-" + name + "~" + jsonObj1
+                            .getString("Time")*/
+                    val s = jsonObj1.getString("sendRecvPair") + "~" + jsonObj1
+                            .getString("Time")
+                    Log.d(TAG, "s: " + s)
+                    chatTimes.put(users[i], s)
+                    /*if (time == "") {
                         time = users.split("-")[i] + "-" + name + "~" + jsonObj1
                                 .getString("Time")
                     } else {
                         time += "_" + users.split("-")[i] + "-" + name + "~" + jsonObj1
                                 .getString("Time")
-                    }
+                    }*/
                     Log.d(TAG, "Inside1")
                 }
                 Log.d(TAG, "Outside1\n$time")
@@ -127,20 +150,28 @@ class ChatMainActivity : BaseActivity() {
                     val jsonObj2 = jsonObj2.getJSONObject(jsonArr2.get(i).toString())
                     Log.d(TAG, "time: ${jsonObj2.getString("Time")}")
 
-                    if (time.equals("")) {
+                    /*val s = users[i] + "-" + name + "~" + jsonObj2
+                            .getString("Time")*/
+                    val s = jsonObj2.getString("sendRecvPair") + "~" + jsonObj2
+                            .getString("Time")
+                    Log.d(TAG, "s: " + s)
+                    chatTimes.put(users[i], s)
+                    /*if (time.equals("")) {
                         time = users.split("-")[i] + "-" + name + "~" + jsonObj2
                                 .getString("Time")
                     } else {
                         time += "_" + users.split("-")[i] + "-" + name + "~" + jsonObj2
                                 .getString("Time")
-                    }
+                    }*/
                     Log.d(TAG, "Inside2")
                 }
-                Log.d(TAG, "Outside2\n$time")
+                //Log.d(TAG, "Outside2\n$time")
+                Log.d(TAG, "Outside2")
             }
+            Log.d(TAG, "map size: ${chatTimes.size}")
         }
 
-        return time
+        return chatTimes
     }
 
     fun getAllUsers() {
@@ -161,9 +192,6 @@ class ChatMainActivity : BaseActivity() {
                                     usersRealm.userName = user
                                     middleware.addUsers(usersRealm)
 
-                                    Toast.makeText(this@ChatMainActivity,
-                                            "users added", Toast.LENGTH_SHORT)
-                                            .show()
                                     Log.d(TAG, "users added to realm")
                                 }
                             }
@@ -180,14 +208,20 @@ class ChatMainActivity : BaseActivity() {
         }
     }
 
-    fun getAllContacts(timeStr: String) {
+    fun getAllContacts(timeStr: MutableMap<String, String>, users: ArrayList<String>) {
         contactsList = ArrayList()
+        val timeList: ArrayList<String> = ArrayList()
+        val offlineList: ArrayList<String> = ArrayList()
         Log.d(TAG, "In getAllContacts() -> $timeStr")
-        for (i in 0..(timeStr.split("_").size-1)) {
-            Log.d(TAG, "timeStr: ${timeStr.split("_")[i].split("~")[1]
+        for (i in 0..(users.size-1)) {
+            /*Log.d(TAG, "timeStr: ${timeStr.split("_")[i].split("~")[1]
                     .replace(("/"+ Calendar.getInstance()
-                            .get(Calendar.YEAR)), "")}")
+                            .get(Calendar.YEAR)), "")}")*/
+            if (!timeStr[users[i]].isNullOrBlank()) {
+                timeList.add(timeStr[users[i]]!!)
+            }
         }
+        Log.d(TAG, "timeList size: " + timeList.size)
         if (networkStatus1.checkInternet(applicationContext)) {
             val call: Call<ResponseBody> = apiInterface.fetchAllUsers()
             call.enqueue(object : Callback<ResponseBody> {
@@ -211,88 +245,13 @@ class ChatMainActivity : BaseActivity() {
                                     contactRealm.contact_name = user
                                     middleware.addContacts(contactRealm)
 
-                                    Toast.makeText(this@ChatMainActivity,
-                                            "contacts added", Toast.LENGTH_SHORT)
-                                            .show()
                                     Log.d(TAG, "contacts added to realm")
-                                }/*
-
-                                val call1 = apiInterface.ReceiveChats(user, name)
-                                val call2 = apiInterface.ReceiveChats(name, user)
-
-                                call1.enqueue(object : Callback<ResponseBody> {
-                                    override fun onResponse(call1: Call<ResponseBody>?, response1: Response<ResponseBody>?) {
-                                        Log.d(TAG, "receive response code: " + response1?.code())
-
-                                        try {
-                                            if (response1?.body()?.contentLength()!! > 4) {
-                                                val jsonObj1 = JSONObject(response1.body().string())
-                                                val jsonArr1 = jsonObj1.names()
-
-                                                val jsonObject1 = jsonObj1.getJSONObject(jsonArr1.get(0).toString())
-                                                if (time == "") {
-                                                    time = jsonObject1.getString("Time")
-                                                    Log.d(TAG, "time1: $time")
-                                                } else {
-                                                    time += "-"+jsonObject1.getString("Time")
-
-                                                }
-                                            }
-                                        } catch (ex: Exception) {
-                                            ex.printStackTrace()
-                                        }
-                                    }
-
-                                    override fun onFailure(call1: Call<ResponseBody>?, t1: Throwable?) {
-                                        Log.d(TAG, "unsuccessful")
-                                    }
-                                })
-
-                                call2.enqueue(object : Callback<ResponseBody> {
-                                    override fun onResponse(call2: Call<ResponseBody>?, response2: Response<ResponseBody>?) {
-                                        Log.d(TAG, "receive response code: " + response2?.code())
-
-                                        try {
-                                            if (response2?.body()?.contentLength()!! > 4) {
-                                                Log.d(TAG, "response: ${response2.body().string()}")
-                                                val jsonObj1 = JSONObject(response2.body().string())
-                                                val jsonArr1 = jsonObj1.names()
-
-                                                val jsonObject1 = jsonObj1.getJSONObject(jsonArr1.get(0).toString())
-                                                if (time == "") {
-                                                    time = jsonObject1.getString("Time")
-                                                    Log.d(TAG, "time2: $time")
-                                                } else {
-                                                    time += "-"+jsonObject1.getString("Time")
-                                                }
-                                                if (contactsRecyclerView.adapter == null) {
-                                                    contactsAdapter = ContactsAdapter(contactsList,
-                                                            applicationContext, name, str, time)
-                                                    contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
-                                                    contactsRecyclerView.adapter = contactsAdapter
-                                                } else {
-                                                    contactsAdapter.notifyDataSetChanged()
-                                                }
-                                                *//*
-                                                contactsAdapter = ContactsAdapter(contactsList,
-                                                        applicationContext, name, str, time)
-                                                contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
-                                                contactsRecyclerView.adapter = contactsAdapter*//*
-                                            }
-                                        } catch (ex: Exception) {
-                                            ex.printStackTrace()
-                                        }
-                                    }
-
-                                    override fun onFailure(call2: Call<ResponseBody>?, t2: Throwable?) {
-
-                                    }
-                                })*/
+                                }
                             }
 
-                            Log.d(TAG, "final time: $timeStr")
+                            //Log.d(TAG, "final time: $timeStr")
                             contactsAdapter = ContactsAdapter(contactsList,
-                                    applicationContext, name, str, timeStr)
+                                    applicationContext, name, str, timeList)
                             contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
                             contactsRecyclerView.adapter = contactsAdapter
                         }
@@ -305,48 +264,6 @@ class ChatMainActivity : BaseActivity() {
 
                 }
             })
-            /*val call: Call<ResponseBody> = apiInterface.fetchAllUsers()
-            call.enqueue(object : Callback<ResponseBody> {
-                override fun onResponse(call: Call<ResponseBody>?, response: Response<ResponseBody>?) {
-                    Log.d(TAG, "response code: ${response?.code()}")
-
-                    try {
-                        if (response?.body()?.contentLength()!! > 4) {
-                            val jsonObj: JSONObject = JSONObject(response.body().string())
-                            val jsonArr: JSONArray = jsonObj.names()
-                            val contactRealmSizeCheck = middleware.checkContactsRealmSize()
-
-                            Log.d(TAG, "json obj size: ${jsonObj.length()}")
-                            for (i in 0..(jsonArr.length()-1)) {
-                                val jsonObj1: JSONObject = jsonObj
-                                        .getJSONObject(jsonArr.get(i).toString())
-                                val user: String = jsonObj1.getString("user")
-
-                                if (user != name) {
-                                    contactsList.add(user)
-                                }
-                                if (contactRealmSizeCheck == 0) {
-                                    contactRealm.contact_name = user
-                                    middleware.addContacts(contactRealm)
-
-                                    Log.d(TAG, "contacts added to realm")
-                                }
-                            }
-
-                            val contactsAdapter: ContactsAdapter = ContactsAdapter(contactsList,
-                                    applicationContext, name, str)
-                            contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
-                            contactsRecyclerView.adapter = contactsAdapter
-                        }
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                    }
-                }
-
-                override fun onFailure(call: Call<ResponseBody>?, t: Throwable?) {
-
-                }
-            })*/
         } else {
             if (middleware.searchContactSize() != 0) {
                 val contactNames: String = middleware.searchAllContacts()
@@ -357,9 +274,14 @@ class ChatMainActivity : BaseActivity() {
                     }
                 }
             }
+            for (i in 0..(users.size-1)) {
+                if (!timeStr[users[i]].isNullOrBlank()) {
+                    offlineList.add(timeStr[users[i]]!!)
+                }
+            }
 
             val contactsAdapter: ContactsAdapter = ContactsAdapter(contactsList,
-                    applicationContext, name, str, middleware.checkTime())
+                    applicationContext, name, str, offlineList)
             contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
             contactsRecyclerView.adapter = contactsAdapter
         }
