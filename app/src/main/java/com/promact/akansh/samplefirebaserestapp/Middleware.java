@@ -85,10 +85,11 @@ public class Middleware {
         });
     }
 
-    Map<String, ChatsRealm> getNumberOfChats() {
+    void getNumberOfChats(final String loggedInUser) {
         final Map<String, String> users = new HashMap<>();
         final Map<String, ChatsRealm> chats = new HashMap<>();
 
+        Log.d(TAG, "Inside getNumberOfChats");
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
@@ -109,13 +110,18 @@ public class Middleware {
 
                 for (String key : users.keySet()) {
                     for (ChatsRealm chatsRealm : chatsList) {
-                        chats.put(key, chatsRealm);
+                        if ((chatsRealm.getUserTo().equals(loggedInUser) || chatsRealm
+                                .getUserFrom().equals(key)) && (chatsRealm
+                                .getUserTo().equals(key) || chatsRealm
+                                .getUserFrom().equals(loggedInUser))) {
+                            Log.d(TAG, "chats: " + chatsRealm.getMsg());
+                            chats.put(key, chatsRealm);
+                        }
                     }
                 }
             }
         });
-
-        return chats;
+        Log.d(TAG, "Inside getNumberOfChats2");
     }
 
     Boolean checkIfChatExists(final String userFrom, final String userTo, final String msg, final String Time) {
@@ -385,7 +391,7 @@ public class Middleware {
                     Chats chats = new Chats(chatsRealm.getUserFrom(),
                             chatsRealm.getUserTo(), chatsRealm.getMsg(),
                             chatsRealm.getTime(), chatsRealm
-                            .getUploadCombo());
+                            .getUploadCombo(), "true");
                     Call<Chats> call = apiInterface.registerChat(chatsRealm
                             .getUploadCombo().split("-")[0], chatsRealm
                                     .getUploadCombo().split("-")[1], num+"",

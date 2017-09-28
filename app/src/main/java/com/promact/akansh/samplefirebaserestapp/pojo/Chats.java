@@ -13,13 +13,16 @@ public class Chats {
     public String sendRecvPair;
     @SerializedName("Time")
     public String Time;
+    @SerializedName("unread")
+    public String unread;
 
     public Chats(String userFrom, String userTo, String Msg, String Time,
-                 String sendRecvPair) {
+                 String sendRecvPair, String unread) {
         this.userFrom = userFrom;
         this.userTo = userTo;
         this.Msg = Msg;
         this.Time = Time;
         this.sendRecvPair = sendRecvPair;
+        this.unread = unread;
     }
 }

@@ -98,13 +98,13 @@ public class ChatActivity extends BaseActivity {
 
                             chats = new Chats(name, str,
                                     name + ": " + textToSend.getText().toString(), date,
-                                    str+"-"+name);
+                                    str+"-"+name, "true");
                             Log.d(TAG, "call: " + str+"-"+name);
                             uploadString = str+"-"+name;
                         } else {
                             chats = new Chats(name, str,
                                     name + ": " + textToSend.getText().toString(), date,
-                                    name+"-"+str);
+                                    name+"-"+str, "true");
                             Log.d(TAG, "call: " + name+"-"+str);
                             uploadString = name + "-" + str;
                         }
@@ -252,6 +252,32 @@ public class ChatActivity extends BaseActivity {
                                     chatStr.add(msg);
                                 }
 
+                                if (jsonObject1.getString("unread").equals("true") &&
+                                        jsonObject1.getString("userTo").equals(name)) {
+                                    Log.d(TAG, "jsonObject unread: " + jsonArray.get(i));
+                                    Chats chats = new Chats(jsonObject1
+                                    .getString("userFrom"), jsonObject1
+                                    .getString("userTo"), jsonObject1
+                                    .getString("Msg"), jsonObject1
+                                    .getString("Time"), jsonObject1
+                                    .getString("sendRecvPair"), "false");
+                                    Call<Chats> callUpdtChat = apiInterface
+                                            .registerChat(str, name, "" + jsonArray
+                                            .get(i), chats);
+                                    callUpdtChat.enqueue(new Callback<Chats>() {
+                                        @Override
+                                        public void onResponse(Call<Chats> call, Response<Chats> response) {
+                                            Log.d(TAG, "response code for update chats: " + response.code());
+                                        }
+
+                                        @Override
+                                        public void onFailure(Call<Chats> call, Throwable t) {
+
+                                        }
+                                    });
+
+                                }
+
                                 if (time.equals("")) {
                                     time = jsonObject1.getString("Time");
                                 } else {
@@ -313,6 +339,19 @@ public class ChatActivity extends BaseActivity {
                                     chatStr.add("You: " + msg.split(":")[1]);
                                 } else {
                                     chatStr.add(msg);
+                                }
+
+                                if (jsonObject1.getString("unread").equals("true") &&
+                                        jsonObject1.getString("userTo").equals(name)) {
+                                    Log.d(TAG, "jsonObject unread: " + jsonArray.get(i));
+                                    Chats chats = new Chats(jsonObject1
+                                            .getString("userFrom"), jsonObject1
+                                            .getString("userTo"), jsonObject1
+                                            .getString("Msg"), jsonObject1
+                                            .getString("Time"), jsonObject1
+                                            .getString("sendRecvPair"), "false");
+                                    apiInterface.registerChat(str, name, "" + jsonArray.get(i),
+                                            chats);
                                 }
 
                                 if (timer.equals("")) {

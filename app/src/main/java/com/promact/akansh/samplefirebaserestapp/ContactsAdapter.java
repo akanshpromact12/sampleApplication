@@ -34,14 +34,17 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
     public static int count = 0;
     private String str;
     private ArrayList<String> time;
+    private ArrayList<String> chats;
 
     public ContactsAdapter(List<String> contacts, Context context, String name,
-                           String str, ArrayList<String> time) {
+                           String str, ArrayList<String> time,
+                           ArrayList<String> chats) {
         this.contacts = contacts;
         this.context = context;
         this.name = name;
         this.str = str;
         this.time = time;
+        this.chats = chats;
     }
 
     @Override
@@ -93,12 +96,20 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
         }
         Log.d(TAG, "timing: " + timing);
         holder.time.setText(timing);
+        for (int i=0; i<chats.size(); i++) {
+            if (chats.get(i).split("~")[1].split(":")[0].equals(contactName)) {
+                holder.chatBubble.setText(chats.get(i).split("~")[3]);
+                holder.chatBubble.setBackgroundResource(R.drawable.ic_chat);
+                holder.chatBubble.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
+            }
+        }
     }
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {
         CircleImageView contactImage;
         TextView contactName;
         TextView time;
+        TextView chatBubble;
 
         ContactViewHolder(View itemView) {
             super(itemView);
@@ -106,6 +117,7 @@ public class ContactsAdapter extends RecyclerView.Adapter<ContactsAdapter.Contac
             contactImage = (CircleImageView) itemView.findViewById(R.id.contact_image);
             contactName = (TextView) itemView.findViewById(R.id.contact_name);
             time = (TextView) itemView.findViewById(R.id.time_of_msg);
+            chatBubble = (TextView) itemView.findViewById(R.id.chatBubble);
         }
     }
 }

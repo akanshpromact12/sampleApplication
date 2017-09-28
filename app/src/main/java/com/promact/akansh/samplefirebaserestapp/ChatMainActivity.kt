@@ -63,21 +63,103 @@ class ChatMainActivity : BaseActivity() {
 
         contactsRecyclerView = findViewById(R.id.contacts_recycler_view) as RecyclerView
         Log.d(TAG, "start")
+        Log.d(TAG, "before")
+        middleware.getNumberOfChats(name)
+        Log.d(TAG, "after")
         val users = synchronousGetUsers()
         val time = synchronousGetChats(users)
+        val chatCount = syncGetChatCount(users)
+        Log.d(TAG, "chatCount: ${chatCount.size}")
+        for (i in 0..(chatCount.size)) {
+            if (chatCount[users[i]]?.split("~")?.size == 4) {
+                Log.d(TAG, "chatCount items: " + chatCount[users[i]])
+            }
+        }
+
         for (i in 0..(users.size-1)) {
             if (!time[users[i]].isNullOrBlank()) {
                 Log.d(TAG, "Array elements: " + time[users[i]])
             }
         }
         Log.d(TAG, " end ")
-        getAllContacts(time, users)
+        getAllContacts(time, users, chatCount)
         getAllUsers()
-        getChatsCountFromRealm()
     }
 
-    fun getChatsCountFromRealm() {
+    fun syncGetChatCount(users: ArrayList<String>): MutableMap<String, String> {
+        val chatsCount: MutableMap<String, String> = HashMap()
 
+        for (i in 0..(users.size-1)) {
+            val call = apiInterface.ReceiveChats(users[i], name)
+            val call1 = apiInterface.ReceiveChats(name, users[i])
+            val resp = call.execute()
+            val resp1 = call1.execute()
+
+            if (resp.body().contentLength() > 4) {
+                val jsonObj = JSONObject(resp.body().string())
+                val jsonArr = jsonObj.names()
+                Log.d(TAG, "users: " + users)
+                Log.d(TAG, "Outside1")
+                var count: Int = 0
+
+                for (i in 0..(jsonArr.length() - 1)) {
+                    val jsonObj1 = jsonObj.getJSONObject(jsonArr.get(i).toString())
+                    Log.d(TAG, "time: ${jsonObj1.getString("Time")}")
+                    var s: String = ""
+
+                    if ((jsonObj1.getString("userTo").equals(name)
+                            && jsonObj1.getString("userFrom").equals(users[i]))
+                            && jsonObj1.getString("unread").equals("true")) {
+                        Log.d(TAG, "counts")
+                        s = jsonObj1.getString("sendRecvPair")+"~"+jsonObj1
+                                .getString("Msg")+"~"+jsonObj1.getString("Time")
+                        count++
+                        Log.d(TAG, "counts value: $count")
+                    }
+
+                    if (count != 0) {
+                        Log.d(TAG, "s: $s~$count")
+                        chatsCount.put(users[i], s + "~" + count)
+                    }
+
+                    Log.d(TAG, "Inside1")
+                }
+                Log.d(TAG, "Outside1\n$time")
+            }
+
+            if (resp1.body().contentLength() > 4) {
+                val jsonObj2 = JSONObject(resp1.body().string())
+                val jsonArr2 = jsonObj2.names()
+                Log.d(TAG, "Outside2")
+                var count: Int = 0
+
+                for (i in 0..(jsonArr2.length() - 1)) {
+                    val jsonObj2 = jsonObj2.getJSONObject(jsonArr2.get(i).toString())
+                    Log.d(TAG, "time: ${jsonObj2.getString("Time")}")
+
+                    var s: String = ""
+
+                    if ((jsonObj2.getString("userTo").equals(name)
+                            && jsonObj2.getString("userFrom").equals(users[i]))
+                            && jsonObj2.getString("unread").equals("false")) {
+                        s = jsonObj2.getString("sendRecvPair")+"~"+jsonObj2
+                                .getString("Msg")+"~"+jsonObj2.getString("Time")
+                        count++
+                    }
+
+                    if (count != 0) {
+                        Log.d(TAG, "s: $s~$count")
+                        chatsCount.put(users[i], s + "~" + count)
+                    }
+                    Log.d(TAG, "Inside2")
+                }
+                //Log.d(TAG, "Outside2\n$time")
+                Log.d(TAG, "Outside2")
+            }
+            Log.d(TAG, "map size: ${chatsCount.size}")
+        }
+
+        return chatsCount
     }
 
     fun synchronousGetUsers(): ArrayList<String> {
@@ -208,17 +290,21 @@ class ChatMainActivity : BaseActivity() {
         }
     }
 
-    fun getAllContacts(timeStr: MutableMap<String, String>, users: ArrayList<String>) {
+    fun getAllContacts(timeStr: MutableMap<String, String>, users: ArrayList<String>, chatCount: MutableMap<String, String>) {
         contactsList = ArrayList()
         val timeList: ArrayList<String> = ArrayList()
         val offlineList: ArrayList<String> = ArrayList()
+        val chatCountsList: ArrayList<String> = ArrayList()
         Log.d(TAG, "In getAllContacts() -> $timeStr")
         for (i in 0..(users.size-1)) {
-            /*Log.d(TAG, "timeStr: ${timeStr.split("_")[i].split("~")[1]
-                    .replace(("/"+ Calendar.getInstance()
-                            .get(Calendar.YEAR)), "")}")*/
             if (!timeStr[users[i]].isNullOrBlank()) {
                 timeList.add(timeStr[users[i]]!!)
+            }
+        }
+
+        for (i in 0..(chatCount.size)) {
+            if (chatCount[users[i]]?.split("~")?.size == 4) {
+                chatCountsList.add(chatCount[users[i]]!!)
             }
         }
         Log.d(TAG, "timeList size: " + timeList.size)
@@ -251,7 +337,8 @@ class ChatMainActivity : BaseActivity() {
 
                             //Log.d(TAG, "final time: $timeStr")
                             contactsAdapter = ContactsAdapter(contactsList,
-                                    applicationContext, name, str, timeList)
+                                    applicationContext, name, str, timeList,
+                                    chatCountsList)
                             contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
                             contactsRecyclerView.adapter = contactsAdapter
                         }
@@ -280,8 +367,10 @@ class ChatMainActivity : BaseActivity() {
                 }
             }
 
+            chatCountsList.add("")
+
             val contactsAdapter: ContactsAdapter = ContactsAdapter(contactsList,
-                    applicationContext, name, str, offlineList)
+                    applicationContext, name, str, offlineList, chatCountsList)
             contactsRecyclerView.layoutManager = LinearLayoutManager(this@ChatMainActivity)
             contactsRecyclerView.adapter = contactsAdapter
         }
